@@ -9,18 +9,17 @@ const client = new OpenAI({
   apiKey: '' // Leave this empty when using Gaia
 });
 
-async function callOpenAI() {
+async function callOpenAI(messagesArray) {
   try {
     const response = await client.chat.completions.create({
       model: "llama",
       messages: [
-        { role: "system", content: "You are a strategic reasoner." },
-        { role: "user", content: "What is the purpose of life?" }
+        { role: "system", content: "You are a judge who is gonna decide if this messages are of a currently married user or not based on the messages which are passed by the user. It should either be a `yes` or `no`. Nothing else should be spoken. Also say in a scale of 1 to 10 how confident are you that they are currently married" },
+        { role: "user", content: messagesArray.toString()}
       ],
       temperature: 0.7,
-      max_tokens: 500
+      max_tokens: 5000
     });
-
     console.log(response.choices[0].message.content);
   } catch (error) {
     console.error('Error:', error);
@@ -42,6 +41,10 @@ app.post("/listen", async (req, res) => {
       .status(500)
       .json({ message: "Error listening to tweets", error: error.message });
   }
+});
+
+app.get('/health', (req, res) => {
+  res.send('OK');
 });
 
 app.listen(port, () => {
