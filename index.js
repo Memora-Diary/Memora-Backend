@@ -1,6 +1,6 @@
 const express = require("express");
 const app = express();
-const port = 3000;
+const port = 3003;
 const { listenToPosts } = require("./services/warpcast");
 
 app.get("/", async (req, res) => {
@@ -18,10 +18,6 @@ app.post("/listen", async (req, res) => {
       .status(500)
       .json({ message: "Error listening to tweets", error: error.message });
   }
-});
-
-app.get('/health', (req, res) => {
-  res.send('OK');
 });
 
 app.listen(port, () => {

@@ -12,11 +12,12 @@ const listenToPosts = async (handle) => {
   allFIDs = await fetchFIDs(allMinters);
 
   // Call Farcaster's public hubble to get user's posts
+  allPosts = [];
   for (i in allFIDs) {
     fid = allFIDs[i];
     console.log(fid);
-    posts = await fetchCastsByFid(fid);
-    allMinters[i].push(posts);
+    posts = fid != 0 ? await fetchCastsByFid(fid) : [""];
+    allPosts[i] = posts;
     console.log(posts.slice(-100));
   }
 

@@ -4,11 +4,11 @@ services:
   app:
     image: 654654475781.dkr.ecr.eu-west-1.amazonaws.com/memora-api:${IMAGE_TAG}
     ports:
-      - 8091:80
+      - 8091:3003
     dns: 169.254.169.253
     tty: true
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3003/"]
       interval: 1m
       timeout: 10s
       retries: 3
