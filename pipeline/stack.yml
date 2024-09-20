@@ -4,7 +4,7 @@ services:
   app:
     image: 654654475781.dkr.ecr.eu-west-1.amazonaws.com/memora-api:${IMAGE_TAG}
     ports:
-      - 8091:80
+      - 8091:3000
     dns: 169.254.169.253
     tty: true
     healthcheck:

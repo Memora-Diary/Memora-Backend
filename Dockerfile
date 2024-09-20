@@ -13,7 +13,9 @@ RUN npm install
 # Step 5: Copy the rest of the application code into the working directory
 COPY . .
 
+ENV HOSTNAME=0.0.0.0
+
 # Step 7: Define the command to start the app
 CMD ["npm", "start"]
 HEALTHCHECK --interval=15m --timeout=5s --retries=3 \
-    CMD ["/usr/bin/curl", "--fail", "http://localhost:3000/health"]
+    CMD ["/usr/bin/curl", "--fail", "http://$HOSTNAME:3000/health"]
