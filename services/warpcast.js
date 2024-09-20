@@ -46,10 +46,13 @@ const listenToPosts = async (handle) => {
 
 const callAI = async (handle, post) => {};
 
-listenToPosts()
-  .then((result) => {
-    console.log(result); // Output: Data fetched successfully
-  })
-  .catch((err) => {
-    console.error(err); // Handle any errors
-  });
+// listenToPosts()
+//   .then((result) => {
+//     console.log(result); // Output: Data fetched successfully
+//   })
+//   .catch((err) => {
+//     console.error(err); // Handle any errors
+//   });
+
+
+module.exports = { listenToPosts };
