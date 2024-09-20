@@ -4,6 +4,10 @@ FROM node:18-alpine
 # Step 2: Set the working directory inside the container
 WORKDIR /usr/src/app
 
+# Step 3: Install curl
+RUN apk add --no-cache curl
+
+
 # Step 3: Copy the package.json and package-lock.json (if available)
 COPY package*.json ./
 
