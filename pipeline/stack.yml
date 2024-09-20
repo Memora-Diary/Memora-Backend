@@ -8,7 +8,7 @@ services:
     dns: 169.254.169.253
     tty: true
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
       interval: 1m
       timeout: 10s
       retries: 3
