@@ -85,29 +85,13 @@ async function fetchCastsByFid(fid) {
 
 const callAI = async (handle, post) => {};
 
-<<<<<<< HEAD
-// fetchCastsByFid(3)
-//   .then((result) => {
-//     console.log(result.slice(-100)); // Output: Data fetched successfully
-=======
 // listenToPosts()
 //   .then((result) => {
 //     console.log(result); // Output: Data fetched successfully
->>>>>>> abfb40a3fd9856125b55075722095b8b6dd08d72
 //   })
 //   .catch((err) => {
 //     console.error(err); // Handle any errors
 //   });
 
-<<<<<<< HEAD
-fetchMemoraNFTData()
-  .then((result) => {
-    console.log(result); // Output: Data fetched successfully
-  })
-  .catch((err) => {
-    console.error(err); // Handle any errors
-  });
-=======
 
 module.exports = { listenToPosts };
->>>>>>> abfb40a3fd9856125b55075722095b8b6dd08d72
