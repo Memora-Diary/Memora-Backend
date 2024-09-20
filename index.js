@@ -21,6 +21,7 @@ app.post("/listen", async (req, res) => {
 });
 
 app.get('/health', (req, res) => {
+  console.log('Health check');
   res.send('OK');
 });
 
