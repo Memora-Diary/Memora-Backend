@@ -52,4 +52,6 @@ app.use((err, req, res, next) => {
   res.status(500).send("Something broke!");
 });
 
+app.use(express.static('public'))
+
 app.use(express.json());
