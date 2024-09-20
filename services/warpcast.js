@@ -1,5 +1,7 @@
 const { idRegistryABI, idRegistryAddress } = require("./abis/idRegistry");
+const { memoraNFTABI, memoraNFTAddress } = require("./abis/memoraNFT");
 const { ethers } = require("ethers");
+const axios = require("axios");
 
 const listenToPosts = async (handle) => {
   // Get the address from the handle
@@ -15,7 +17,7 @@ const listenToPosts = async (handle) => {
     optimismProvider
   );
 
-  // Get the FIDs
+  // Get the FIDs (from addresses)
   FIDs = [];
   for (i in addresses) {
     address = addresses[i];
@@ -34,19 +36,64 @@ const listenToPosts = async (handle) => {
     }
   }
 
-  // Convert address to FID using ID Registry
-
   // Call API to get user's posts
 
   // Call AI to analyze posts
 };
+
+async function fetchMemoraNFTData() {
+  try {
+    const sepoliaProvider = new ethers.JsonRpcProvider(
+      "https://rpc.sepolia.org"
+    );
+    const memoraNFT = new ethers.Contract(
+      memoraNFTAddress,
+      memoraNFTABI,
+      sepoliaProvider
+    );
+
+    const allMinters = await memoraNFT.getAllMinters();
+    return allMinters;
+  } catch (error) {
+    throw error;
+  }
+}
+
+async function fetchCastsByFid(fid) {
+  try {
+    const response = await axios.get(
+      `https://hoyt.farcaster.xyz:2281/v1/castsByFid?fid=${fid}`
+    );
+    messages = response.data.messages;
+    const isSorted = messages.every(
+      (message, index, array) =>
+        index === 0 || message.data.timestamp >= array[index - 1].data.timestamp
+    );
+
+    if (!isSorted) {
+      console.log("Messages were not sorted. Sorting now...");
+      messages = messages.sort((a, b) => a.data.timestamp - b.data.timestamp);
+    }
+    return messages.map((message) => message.data.castAddBody.text);
+  } catch (error) {
+    throw error;
+  }
+}
 
 // TODO with DB:
 // store users: FID, Latest post date, Latest AI decision
 
 const callAI = async (handle, post) => {};
 
-listenToPosts()
+// fetchCastsByFid(3)
+//   .then((result) => {
+//     console.log(result.slice(-100)); // Output: Data fetched successfully
+//   })
+//   .catch((err) => {
+//     console.error(err); // Handle any errors
+//   });
+
+fetchMemoraNFTData()
   .then((result) => {
     console.log(result); // Output: Data fetched successfully
   })
