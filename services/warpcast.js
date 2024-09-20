@@ -4,42 +4,58 @@ const { ethers } = require("ethers");
 const axios = require("axios");
 
 const listenToPosts = async (handle) => {
-  // Get the address from the handle
-  const addresses = ["0x429ccbb1e49aa16a64617b4d9c911d7b00a449f2"];
+  // Fetch all NFT minters
+  allMinters = await fetchMemoraNFTData();
+  //   dumb: allMinters = [[0, "0xad1aa5d1eea542277cfb451a94843c41d2c25ed8"]];
 
-  // Farcaster Contract
-  const optimismProvider = new ethers.JsonRpcProvider(
-    "https://mainnet.optimism.io"
-  );
-  const registry = new ethers.Contract(
-    idRegistryAddress,
-    idRegistryABI,
-    optimismProvider
-  );
+  // Get the FID from the addresses
+  allFIDs = await fetchFIDs(allMinters);
 
-  // Get the FIDs (from addresses)
-  FIDs = [];
-  for (i in addresses) {
-    address = addresses[i];
-    try {
-      // Call the view function
-      const fid = await registry.idOf(address);
-      console.log(fid);
-      console.log("FID for address %s: %s", address, fid);
-    } catch (error) {
-      console.error(
-        "Error calling contract for address %s: %s",
-        address,
-        error
-      );
-      throw error;
-    }
+  // Call Farcaster's public hubble to get user's posts
+  for (i in allFIDs) {
+    fid = allFIDs[i];
+    console.log(fid);
+    posts = await fetchCastsByFid(fid);
+    allMinters[i].push(posts);
+    console.log(posts.slice(-100));
   }
-
-  // Call API to get user's posts
 
   // Call AI to analyze posts
 };
+
+async function fetchFIDs(allMinters) {
+  try {
+    const optimismProvider = new ethers.JsonRpcProvider(
+      "https://mainnet.optimism.io"
+    );
+    const registry = new ethers.Contract(
+      idRegistryAddress,
+      idRegistryABI,
+      optimismProvider
+    );
+
+    FIDs = [];
+    for (i in allMinters) {
+      minter = allMinters[i][1];
+      console.log(allMinters[i][1]);
+      try {
+        const fid = await registry.idOf(minter);
+        FIDs.push(fid);
+      } catch (error) {
+        console.error(
+          "Error calling contract for address %s: %s",
+          minter,
+          error
+        );
+        throw error;
+      }
+      2;
+    }
+    return FIDs;
+  } catch (error) {
+    throw error;
+  }
+}
 
 async function fetchMemoraNFTData() {
   try {
@@ -74,7 +90,9 @@ async function fetchCastsByFid(fid) {
       console.log("Messages were not sorted. Sorting now...");
       messages = messages.sort((a, b) => a.data.timestamp - b.data.timestamp);
     }
-    return messages.map((message) => message.data.castAddBody.text);
+    return messages.map((message) =>
+      message.data.castAddBody ? message.data.castAddBody.text : ""
+    );
   } catch (error) {
     throw error;
   }
@@ -85,29 +103,18 @@ async function fetchCastsByFid(fid) {
 
 const callAI = async (handle, post) => {};
 
-<<<<<<< HEAD
 // fetchCastsByFid(3)
 //   .then((result) => {
 //     console.log(result.slice(-100)); // Output: Data fetched successfully
-=======
-// listenToPosts()
-//   .then((result) => {
-//     console.log(result); // Output: Data fetched successfully
->>>>>>> abfb40a3fd9856125b55075722095b8b6dd08d72
 //   })
 //   .catch((err) => {
 //     console.error(err); // Handle any errors
 //   });
 
-<<<<<<< HEAD
-fetchMemoraNFTData()
+listenToPosts()
   .then((result) => {
     console.log(result); // Output: Data fetched successfully
   })
   .catch((err) => {
     console.error(err); // Handle any errors
   });
-=======
-
-module.exports = { listenToPosts };
->>>>>>> abfb40a3fd9856125b55075722095b8b6dd08d72
