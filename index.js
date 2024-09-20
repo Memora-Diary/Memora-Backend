@@ -43,10 +43,6 @@ app.post("/listen", async (req, res) => {
   }
 });
 
-app.get('/health', (req, res) => {
-  res.send('OK');
-});
-
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
