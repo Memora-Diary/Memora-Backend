@@ -21,4 +21,7 @@ ENV PORT 3003
 ENV HOSTNAME=0.0.0.0
 
 # Step 7: Define the command to start the app
-CMD [ "node", "index.js", "-p", "3003" ]
+
+ENTRYPOINT [ "node", "index.js", "-p", "3003" ]
+HEALTHCHECK --interval=15s --timeout=5s --retries=3 \
+    CMD /bin/sh -c '/usr/bin/curl --fail http://$HOSTNAME:3003/ || exit 1'
