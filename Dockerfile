@@ -13,8 +13,7 @@ RUN npm install
 # Step 5: Copy the rest of the application code into the working directory
 COPY . .
 
-# Step 6: Expose the port on which your app runs (80 in this example)
-EXPOSE 80
-
 # Step 7: Define the command to start the app
 CMD ["npm", "start"]
+HEALTHCHECK --interval=15m --timeout=5s --retries=3 \
+    CMD ["/usr/bin/curl", "--fail", "http://localhost:3000/health"]
