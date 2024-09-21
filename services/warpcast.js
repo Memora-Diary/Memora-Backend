@@ -5,6 +5,7 @@ require("dotenv").config();
 const { callOpenAI } = require("./ai");
 const { fetchFIDs, fetchMemoraNFTData, triggerNFT } = require("./chain");
 const { upsertUser, getUserById } = require("./db");
+const { fetchNFTPrompt } = require("./services/chain");
 
 const warpcast_url = "https://api.warpcast.com/v2/ext-send-direct-cast";
 
