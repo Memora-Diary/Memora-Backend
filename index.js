@@ -20,6 +20,12 @@ app.post("/listen", async (req, res) => {
   }
 });
 
+app.post("/world_coin/verify", async (req, res) => {
+  const { handle } = req.body;
+  console.log(handle);
+  res.json({ verified: true });
+});
+
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
