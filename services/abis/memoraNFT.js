@@ -1,5 +1,5 @@
 const memoraNFTAddress =
-  "0xb5B7e3f5c107BF35418dCAaFeB4F8249E3D276a0".toLowerCase();
+  "0xCF51D633067e9EbB3c8438F6818FF53FccC07b40".toLowerCase();
 const memoraNFTABI = [
   {
     inputs: [
@@ -238,6 +238,25 @@ const memoraNFTABI = [
         name: "tokenId",
         type: "uint256",
       },
+      {
+        indexed: true,
+        internalType: "uint256",
+        name: "amount",
+        type: "uint256",
+      },
+    ],
+    name: "FundsAdded",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "uint256",
+        name: "tokenId",
+        type: "uint256",
+      },
     ],
     name: "HeirSigned",
     type: "event",
@@ -285,6 +304,31 @@ const memoraNFTABI = [
       },
     ],
     name: "NFTInherited",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "uint256",
+        name: "tokenId",
+        type: "uint256",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "heir",
+        type: "address",
+      },
+      {
+        indexed: true,
+        internalType: "uint256",
+        name: "amount",
+        type: "uint256",
+      },
+    ],
+    name: "NFTInheritedAndFundsReleased",
     type: "event",
   },
   {
@@ -343,6 +387,19 @@ const memoraNFTABI = [
     ],
     name: "TriggerDisabled",
     type: "event",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "tokenId",
+        type: "uint256",
+      },
+    ],
+    name: "addFunds",
+    outputs: [],
+    stateMutability: "payable",
+    type: "function",
   },
   {
     inputs: [
@@ -437,7 +494,7 @@ const memoraNFTABI = [
             type: "address",
           },
         ],
-        internalType: "struct MemoraNFT.MinterData[]",
+        internalType: "struct MemoraNFTV2.MinterData[]",
         name: "",
         type: "tuple[]",
       },
@@ -478,6 +535,25 @@ const memoraNFTABI = [
         internalType: "uint256[]",
         name: "",
         type: "uint256[]",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "tokenId",
+        type: "uint256",
+      },
+    ],
+    name: "getTokenBalance",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
       },
     ],
     stateMutability: "view",
@@ -767,7 +843,7 @@ const memoraNFTABI = [
         type: "string",
       },
       {
-        internalType: "enum MemoraNFT.AccountAction",
+        internalType: "enum MemoraNFTV2.AccountAction",
         name: "actions",
         type: "uint8",
       },
@@ -775,6 +851,16 @@ const memoraNFTABI = [
         internalType: "uint256",
         name: "triggerTimestamp",
         type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "balance",
+        type: "uint256",
+      },
+      {
+        internalType: "string",
+        name: "uri",
+        type: "string",
       },
     ],
     stateMutability: "view",
@@ -831,6 +917,19 @@ const memoraNFTABI = [
       },
     ],
     name: "transferOwnership",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "tokenId",
+        type: "uint256",
+      },
+    ],
+    name: "withdrawFunds",
     outputs: [],
     stateMutability: "nonpayable",
     type: "function",
