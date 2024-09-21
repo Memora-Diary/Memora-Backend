@@ -34,7 +34,7 @@ Located in `services/db.js`, this service manages the local SQLite database, sto
 ## API Endpoints
 
 - `POST /finetune-neg`: Endpoint for fine-tuning negative feedback for a user
-- `POST /world_coin/verify`: Endpoint for World Coin verification (currently returns `{verified: true}`)
+- `POST /world_coin/verify`: Endpoint for World Coin verification 
 
 
 ## Dependencies
