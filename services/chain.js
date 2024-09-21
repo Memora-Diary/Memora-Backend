@@ -88,7 +88,10 @@ async function fetchNFTPrompt(nftId) {
 
     const tokenInfo = await memoraNFT.tokenInfo(nftId);
     console.log("prompt: ", tokenInfo[5]);
-    return tokenInfo[5];
+    return {
+      prompt: tokenInfo[5],
+      heir: tokenInfo[1],
+    };
   } catch (error) {
     throw error;
   }
