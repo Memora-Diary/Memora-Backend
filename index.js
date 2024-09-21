@@ -14,14 +14,14 @@ app.get("/", async (req, res) => {
 app.post("/finetune-neg", async (req, res) => {
   const { handle } = req.body;
   try {
-    nftId = handle.tokenId;
-    fid = handle.fid;
+    nftId = Number(handle.tokenId);
+    fid = Number(handle.fid);
 
     let fidData =
       fid != 0 ? await fetchCastsByFid(fid) : { posts: [""], timestamp: 0 };
 
     console.log("new posts for user ", fid);
-    posts = fidData.posts.join(";");
+    posts = JSON.stringify(fidData["posts"]);
 
     nftInfo = await fetchNFTPrompt(nftId);
     prompt = nftInfo.prompt;
@@ -54,8 +54,14 @@ app.use(express.static("public"));
 app.use(express.json());
 
 // 15 sec loop
-cron.schedule("*/15 * * * * *", () => {
+cron.schedule("*/60 * * * * *", async () => {
   console.log("Starting a new update round");
-  updatePosts({});
-  console.log("Finished round, sleeping...");
+
+  try {
+    // Wait for updatePosts to complete before continuing
+    await updatePosts({});
+    console.log("Finished round, sleeping...");
+  } catch (error) {
+    console.error("An error occurred during the update:", error);
+  }
 });

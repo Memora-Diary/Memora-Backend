@@ -63,6 +63,7 @@ function getUsersByIds(userIds) {
 
 function getUserById(userId) {
   return new Promise((resolve, reject) => {
+    userId = Number(userId);
     const query = "SELECT * FROM USERS WHERE userID = ?";
 
     db.get(query, userId, (err, row) => {
@@ -82,6 +83,8 @@ function getUserById(userId) {
 
 // Function to insert or update a user
 function upsertUser(userID, latestPost) {
+  userID = Number(userID);
+
   const stmt = db.prepare(`
       INSERT OR REPLACE INTO USERS (userID, latestPost)
       VALUES (?, ?)
@@ -115,6 +118,8 @@ function upsertUser(userID, latestPost) {
 function upsertTrigger(postId, userId) {
   return new Promise((resolve, reject) => {
     // First, check if a trigger already exists
+    postId = Number(postId);
+    userId = Number(userId);
     const checkQuery =
       "SELECT triggerID FROM TRIGGERS WHERE postID = ? AND userID = ?";
 
