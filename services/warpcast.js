@@ -1,7 +1,10 @@
-const { idRegistryABI, idRegistryAddress } = require("./abis/idRegistry");
-const { memoraNFTABI, memoraNFTAddress } = require("./abis/memoraNFT");
 const { ethers } = require("ethers");
 const axios = require("axios");
+
+const { callOpenAI } = require("./ai");
+const { fetchFIDs, fetchMemoraNFTData, triggerNFT } = require("./chain");
+
+const warpcast_url = "https://api.warpcast.com/v2/ext-send-direct-cast";
 
 const listenToPosts = async (handle) => {
   // Fetch all NFT minters
@@ -17,64 +20,24 @@ const listenToPosts = async (handle) => {
     fid = allFIDs[i];
     console.log(fid);
     posts = fid != 0 ? await fetchCastsByFid(fid) : [""];
-    allPosts[i] = posts;
+    allPosts[i] = posts.join(";");
     console.log(posts.slice(-100));
   }
 
   // Call AI to analyze posts
-};
-
-async function fetchFIDs(allMinters) {
-  try {
-    const optimismProvider = new ethers.JsonRpcProvider(
-      "https://mainnet.optimism.io"
-    );
-    const registry = new ethers.Contract(
-      idRegistryAddress,
-      idRegistryABI,
-      optimismProvider
-    );
-
-    FIDs = [];
-    for (i in allMinters) {
-      minter = allMinters[i][1];
-      console.log(allMinters[i][1]);
-      try {
-        const fid = await registry.idOf(minter);
-        FIDs.push(fid);
-      } catch (error) {
-        console.error(
-          "Error calling contract for address %s: %s",
-          minter,
-          error
-        );
-        throw error;
+  // TODO only if new posts
+  console.log(allPosts);
+  for (i in allPosts) {
+    if (allPosts[i] != "") {
+      res = await callOpenAI(allPosts[i]);
+      console.log(res.toLowerCase());
+      if (res == "yes") {
+        triggerNFT(allMinters[i][0]);
+        sendDM(allFIDs[i]);
       }
-      2;
     }
-    return FIDs;
-  } catch (error) {
-    throw error;
   }
-}
-
-async function fetchMemoraNFTData() {
-  try {
-    const sepoliaProvider = new ethers.JsonRpcProvider(
-      "https://rpc.sepolia.org"
-    );
-    const memoraNFT = new ethers.Contract(
-      memoraNFTAddress,
-      memoraNFTABI,
-      sepoliaProvider
-    );
-
-    const allMinters = await memoraNFT.getAllMinters();
-    return allMinters;
-  } catch (error) {
-    throw error;
-  }
-}
+};
 
 async function fetchCastsByFid(fid) {
   try {
@@ -99,10 +62,36 @@ async function fetchCastsByFid(fid) {
   }
 }
 
+async function sendDM(fid) {
+  const data = {
+    recipientFid: fid,
+    message: "Looks like you just got married! Congratulations!",
+    idempotencyKey: "ed3d9b95-5eed-475f-9c7d-58bdc3b9ac00",
+  };
+
+  let config = {
+    method: "put",
+    maxBodyLength: Infinity,
+    url: "https://api.warpcast.com/v2/ext-send-direct-cast",
+    headers: {
+      "User-Agent": "-u",
+      Authorization:
+        "Bearer wc_secret_391c2f8be3f9bde32a1e36adee63afe84ac3bcf101aeabc9e125cadc_999c9bf2",
+    },
+    data: data,
+  };
+  axios
+    .request(config)
+    .then((response) => {
+      console.log(JSON.stringify(response.data));
+    })
+    .catch((error) => {
+      console.log(error);
+    });
+}
+
 // TODO with DB:
 // store users: FID, Latest post date, Latest AI decision
-
-const callAI = async (handle, post) => {};
 
 // fetchCastsByFid(3)
 //   .then((result) => {
@@ -112,10 +101,12 @@ const callAI = async (handle, post) => {};
 //     console.error(err); // Handle any errors
 //   });
 
-listenToPosts()
-  .then((result) => {
-    console.log(result); // Output: Data fetched successfully
-  })
-  .catch((err) => {
-    console.error(err); // Handle any errors
-  });
+// listenToPosts()
+//   .then((result) => {
+//     console.log(result); // Output: Data fetched successfully
+//   })
+//   .catch((err) => {
+//     console.error(err); // Handle any errors
+//   });
+
+// sendDM(855266);
