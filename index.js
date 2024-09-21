@@ -8,7 +8,6 @@ const { fetchNFTPrompt } = require("./services/chain");
 const { giveNegativeFeedback } = require("./services/ai");
 
 app.get("/", async (req, res) => {
-  await listenToPosts({});
   res.send("Hello World!");
 });
 
@@ -24,7 +23,8 @@ app.post("/finetune-neg", async (req, res) => {
     console.log("new posts for user ", fid);
     posts = fidData.posts.join(";");
 
-    prompt = await fetchNFTPrompt(nftId);
+    nftInfo = await fetchNFTPrompt(nftId);
+    prompt = nftInfo.prompt;
     await giveNegativeFeedback(prompt, posts);
     res.json({ message: `Fine-tuned the negative feedback for @${handle}` });
   } catch (error) {
@@ -53,8 +53,9 @@ app.use(express.static("public"));
 
 app.use(express.json());
 
-// Schedule a task to run every 2 minutes
-cron.schedule("*/2 * * * *", () => {
+// 15 sec loop
+cron.schedule("*/15 * * * * *", () => {
   console.log("Starting a new update round");
   updatePosts({});
+  console.log("Finished round, sleeping...");
 });

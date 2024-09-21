@@ -30,14 +30,18 @@ const updatePosts = async (handle) => {
       posts = fidData.posts.join(";");
       nftId = allMinters[i][0];
 
-      prompt = await fetchNFTPrompt(nftId);
+      nftInfo = await fetchNFTPrompt(nftId);
+      prompt = nftInfo.prompt;
+
       res = await callOpenAI(posts);
 
       console.log("decision: ", res.toLowerCase());
       if (res == "yes") {
         triggerId = upsertTrigger(nftId, fid);
         triggerNFT(nftId);
-        sendDM(fid, triggerId);
+        sendDM(fid, triggerId, "minter");
+        heirFid = await fetchFIDs([[0, nftInfo.heir]]);
+        sendDM(heirFid, triggerId, "heir");
       }
 
       upsertUser(fid, fidData.timestamp);
@@ -51,6 +55,9 @@ async function fetchCastsByFid(fid) {
       `https://hoyt.farcaster.xyz:2281/v1/castsByFid?fid=${fid}`
     );
     messages = response.data.messages;
+    if (messages.length == 0) {
+      return { posts: [""], timestamp: 0 };
+    }
     const isSorted = messages.every(
       (message, index, array) =>
         index === 0 || message.data.timestamp >= array[index - 1].data.timestamp
@@ -72,10 +79,19 @@ async function fetchCastsByFid(fid) {
   }
 }
 
-async function sendDM(fid, triggerId) {
+async function sendDM(fid, triggerId, role) {
+  if (role == "minter") {
+    message =
+      "Looks like one of your memora was triggered! Check it out here: https://memora.today/dashboard/";
+    triggerId = triggerId + "m";
+  } else {
+    message =
+      "You have inherited a memora! Check it out here: https://memora.today/dashboard/";
+    triggerId = triggerId + "h";
+  }
   const data = {
     recipientFid: fid,
-    message: "Looks like you just got married! Congratulations!",
+    message: message,
     idempotencyKey: triggerId,
   };
 
