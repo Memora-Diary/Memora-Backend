@@ -1,5 +1,5 @@
 const memoraNFTAddress =
-  "0x51d5eba67D069812129849Ce5a027459E08767e7".toLowerCase();
+  "0xfCA163225C8E6305A5395d88C1d047a879948144".toLowerCase();
 const memoraNFTABI = [
   {
     inputs: [
@@ -502,6 +502,25 @@ const memoraNFTABI = [
         internalType: "struct MemoraNFTV2.MinterData[]",
         name: "",
         type: "tuple[]",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "address",
+        name: "heir",
+        type: "address",
+      },
+    ],
+    name: "getAllNFTsForHeir",
+    outputs: [
+      {
+        internalType: "uint256[]",
+        name: "",
+        type: "uint256[]",
       },
     ],
     stateMutability: "view",

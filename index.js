@@ -1,7 +1,7 @@
 const express = require("express");
 const app = express();
-const port = 3000;
-const listenToPosts = require("./services/warpcast");
+const port = 3003;
+const updatePosts = require("./services/warpcast");
 const cron = require("node-cron");
 const cors = require('cors');
 const { fetchNFTPrompt } = require("./services/chain");
@@ -10,23 +10,23 @@ const { giveNegativeFeedback } = require("./services/ai");
 app.use(cors());
 
 app.get("/", async (req, res) => {
-  await listenToPosts({});
   res.send("Hello World!");
 });
 
 app.post("/finetune-neg", async (req, res) => {
   const { handle } = req.body;
   try {
-    nftId = handle.tokenId;
-    fid = handle.fid;
+    nftId = Number(handle.tokenId);
+    fid = Number(handle.fid);
 
     let fidData =
       fid != 0 ? await fetchCastsByFid(fid) : { posts: [""], timestamp: 0 };
 
     console.log("new posts for user ", fid);
-    posts = fidData.posts.join(";");
+    posts = JSON.stringify(fidData["posts"]);
 
-    prompt = await fetchNFTPrompt(nftId);
+    nftInfo = await fetchNFTPrompt(nftId);
+    prompt = nftInfo.prompt;
     await giveNegativeFeedback(prompt, posts);
     res.json({ message: `Fine-tuned the negative feedback for @${handle}` });
   } catch (error) {
@@ -55,8 +55,15 @@ app.use(express.static("public"));
 
 app.use(express.json());
 
-// Schedule a task to run every 2 minutes
-cron.schedule("*/2 * * * *", () => {
+// 15 sec loop
+cron.schedule("*/60 * * * * *", async () => {
   console.log("Starting a new update round");
-  updatePosts({});
+
+  try {
+    // Wait for updatePosts to complete before continuing
+    await updatePosts({});
+    console.log("Finished round, sleeping...");
+  } catch (error) {
+    console.error("An error occurred during the update:", error);
+  }
 });

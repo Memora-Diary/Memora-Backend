@@ -2,9 +2,12 @@ const { ethers } = require("ethers");
 const axios = require("axios");
 require("dotenv").config();
 
+const { v4: uuidv4 } = require("uuid");
+
 const { callOpenAI } = require("./ai");
 const { fetchFIDs, fetchMemoraNFTData, triggerNFT } = require("./chain");
-const { upsertUser, getUserById } = require("./db");
+const { upsertUser, getUserById, upsertTrigger } = require("./db");
+const { fetchNFTPrompt } = require("./chain");
 
 const warpcast_url = "https://api.warpcast.com/v2/ext-send-direct-cast";
 
@@ -18,30 +21,47 @@ const updatePosts = async (handle) => {
 
   // Call Farcaster's public hubble to get user's posts
   allPosts = [];
+  updatedUsers = {};
   for (i in allMinters) {
     fid = allMinters[i][2];
     let fidData =
       fid != 0 ? await fetchCastsByFid(fid) : { posts: [""], timestamp: 0 };
+    if (fidData.posts.length == 1 && fidData.posts[0] == "") {
+      continue;
+    }
+    console.log("difData, ", fidData);
     storedUser = await getUserById(fid);
 
     // Only call the AI if there are new posts
     if (storedUser == null || storedUser.latestPost < fidData.timestamp) {
       console.log("new posts for user ", fid);
-      posts = fidData.posts.join(";");
-      nftId = allMinters[i][0];
+      posts = JSON.stringify(fidData["posts"]);
 
-      prompt = await fetchNFTPrompt(nftId);
-      res = await callOpenAI(posts);
+      nftId = Number(allMinters[i][0]);
 
-      console.log("decision: ", res.toLowerCase());
+      nftInfo = await fetchNFTPrompt(nftId);
+      prompt = nftInfo.prompt;
+
+      res = await callOpenAI(prompt, posts);
+
+      console.log("decision: ", res);
       if (res == "yes") {
-        triggerId = upsertTrigger(nftId, fid);
+        triggerId = Number(await upsertTrigger(nftId, fid));
         triggerNFT(nftId);
-        sendDM(fid, triggerId);
+        sendDM(fid, triggerId, "minter");
+        heirFid = Number(await fetchFIDs([[0, nftInfo.heir]]));
+        console.log("heir", heirFid);
+        if (heirFid != 0) {
+          sendDM(heirFid, triggerId, "heir");
+        }
       }
 
-      upsertUser(fid, fidData.timestamp);
+      updatedUsers[fid] = fidData.timestamp;
     }
+  }
+
+  for (const [key, value] of Object.entries(updatedUsers)) {
+    upsertUser(key, value);
   }
 };
 
@@ -51,6 +71,9 @@ async function fetchCastsByFid(fid) {
       `https://hoyt.farcaster.xyz:2281/v1/castsByFid?fid=${fid}`
     );
     messages = response.data.messages;
+    if (messages.length == 0) {
+      return { posts: [""], timestamp: 0 };
+    }
     const isSorted = messages.every(
       (message, index, array) =>
         index === 0 || message.data.timestamp >= array[index - 1].data.timestamp
@@ -60,7 +83,7 @@ async function fetchCastsByFid(fid) {
       messages = messages.sort((a, b) => a.data.timestamp - b.data.timestamp);
     }
     timestamp = messages.slice(-1)[0].data.timestamp;
-    console.log(messages);
+    // console.log(messages);
     return {
       posts: messages.map((message) =>
         message.data.castAddBody ? message.data.castAddBody.text : ""
@@ -72,10 +95,21 @@ async function fetchCastsByFid(fid) {
   }
 }
 
-async function sendDM(fid, triggerId) {
+async function sendDM(fid, triggerId, role) {
+  fid = Number(fid);
+  uid = uuidv4();
+  if (role == "minter") {
+    message =
+      "Looks like one of your memora was triggered! Check it out here: https://memora.today/dashboard/";
+    triggerId = triggerId + "m" + uid;
+  } else {
+    message =
+      "You have inherited a memora! Check it out here: https://memora.today/dashboard/";
+    triggerId = triggerId + "h" + uid;
+  }
   const data = {
     recipientFid: fid,
-    message: "Looks like you just got married! Congratulations!",
+    message: message,
     idempotencyKey: triggerId,
   };
 
@@ -133,3 +167,5 @@ async function sendDM(fid, triggerId) {
 
 // timestamp =
 // listenToPosts({});
+
+module.exports = updatePosts;
