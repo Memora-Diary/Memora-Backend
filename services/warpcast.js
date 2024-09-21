@@ -1,8 +1,10 @@
 const { ethers } = require("ethers");
 const axios = require("axios");
+require("dotenv").config();
 
 const { callOpenAI } = require("./ai");
 const { fetchFIDs, fetchMemoraNFTData, triggerNFT } = require("./chain");
+const { upsertUser, getUserById } = require("./db");
 
 const warpcast_url = "https://api.warpcast.com/v2/ext-send-direct-cast";
 
@@ -14,29 +16,41 @@ const listenToPosts = async (handle) => {
   // Get the FID from the addresses
   allFIDs = await fetchFIDs(allMinters);
 
+  // TODO retrieve users / latest post timestamps from DB
+
   // Call Farcaster's public hubble to get user's posts
   allPosts = [];
   for (i in allFIDs) {
     fid = allFIDs[i];
-    console.log(fid);
-    posts = fid != 0 ? await fetchCastsByFid(fid) : [""];
-    allPosts[i] = posts.join(";");
-    console.log(posts.slice(-100));
+    console.log("updating posts for user", fid);
+    let fidData =
+      fid != 0 ? await fetchCastsByFid(fid) : { posts: [""], timestamp: 0 };
+    storedUser = await getUserById(fid);
+    console.log("ts", fidData.timestamp);
+    console.log("stored", storedUser);
+
+    // Only call the AI if there are new posts
+    if (storedUser && storedUser.latestPost < fidData.timestamp) {
+      posts = fidData.posts.join(";");
+      tokenId = allMinters[i][0];
+      prompt = await fetchNFTPrompt(tokenId);
+      res = await callOpenAI(allPosts[i]);
+      console.log(res.toLowerCase());
+      if (res == "yes") {
+        triggerId = upsertTrigger(tokenId, fid);
+        triggerNFT(tokenId);
+        sendDM(allFIDs[i], triggerId);
+      }
+
+      upsertUser(fid, fidData.timestamp);
+    }
+    // timestamp =
+
+    // console.log(posts.slice(-100));
   }
 
   // Call AI to analyze posts
   // TODO only if new posts
-  console.log(allPosts);
-  for (i in allPosts) {
-    if (allPosts[i] != "") {
-      res = await callOpenAI(allPosts[i]);
-      console.log(res.toLowerCase());
-      if (res == "yes") {
-        triggerNFT(allMinters[i][0]);
-        sendDM(allFIDs[i]);
-      }
-    }
-  }
 };
 
 async function fetchCastsByFid(fid) {
@@ -49,24 +63,28 @@ async function fetchCastsByFid(fid) {
       (message, index, array) =>
         index === 0 || message.data.timestamp >= array[index - 1].data.timestamp
     );
-
     if (!isSorted) {
       console.log("Messages were not sorted. Sorting now...");
       messages = messages.sort((a, b) => a.data.timestamp - b.data.timestamp);
     }
-    return messages.map((message) =>
-      message.data.castAddBody ? message.data.castAddBody.text : ""
-    );
+    timestamp = messages.slice(-1)[0].data.timestamp;
+    console.log(messages);
+    return {
+      posts: messages.map((message) =>
+        message.data.castAddBody ? message.data.castAddBody.text : ""
+      ),
+      timestamp: timestamp,
+    };
   } catch (error) {
     throw error;
   }
 }
 
-async function sendDM(fid) {
+async function sendDM(fid, triggerId) {
   const data = {
     recipientFid: fid,
     message: "Looks like you just got married! Congratulations!",
-    idempotencyKey: "ed3d9b95-5eed-475f-9c7d-58bdc3b9ac00",
+    idempotencyKey: triggerId,
   };
 
   let config = {
@@ -75,8 +93,7 @@ async function sendDM(fid) {
     url: "https://api.warpcast.com/v2/ext-send-direct-cast",
     headers: {
       "User-Agent": "-u",
-      Authorization:
-        "Bearer wc_secret_391c2f8be3f9bde32a1e36adee63afe84ac3bcf101aeabc9e125cadc_999c9bf2",
+      Authorization: `Bearer ${process.env.WARPCAST_API_KEY}`,
     },
     data: data,
   };
@@ -110,3 +127,17 @@ async function sendDM(fid) {
 //   });
 
 // sendDM(855266);
+
+// fetchCastsByFid(855266).then((result) => {
+//   console.log(result); // Output: Data fetched successfully
+// });
+
+// let fidData = (fid != 0 ? fetchCastsByFid(855266) : [""], 0);
+// fetchCastsByFid(855266).then((result) => {
+//   //   allPosts[i] = result.posts.join(";");
+//   console.log(result.timestamp);
+//   upsertUser(855266, result.timestamp);
+// });
+
+// timestamp =
+listenToPosts({});

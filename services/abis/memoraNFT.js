@@ -1,4 +1,5 @@
-const memoraNFTAddress = "0xb5B7e3f5c107BF35418dCAaFeB4F8249E3D276a0";
+const memoraNFTAddress =
+  "0xb5B7e3f5c107BF35418dCAaFeB4F8249E3D276a0".toLowerCase();
 const memoraNFTABI = [
   {
     inputs: [

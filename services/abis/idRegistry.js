@@ -1,3 +1,5 @@
+// See https://docs.farcaster.xyz/reference/contracts/deployments#abis
+
 const idRegistryAddress = "0x00000000fc6c5f01fc30151999387bb99a9f489b";
 
 const idRegistryABI = [

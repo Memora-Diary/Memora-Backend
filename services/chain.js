@@ -23,7 +23,7 @@ async function fetchFIDs(allMinters) {
     FIDs = [];
     for (i in allMinters) {
       minter = allMinters[i][1];
-      console.log(allMinters[i][1]);
+      //   console.log(allMinters[i][1]);
       try {
         const fid = await registry.idOf(minter);
         FIDs.push(fid);
@@ -78,4 +78,20 @@ async function triggerNFT(tokenId) {
   }
 }
 
-triggerNFT(1);
+async function fetchNFTPrompt(tokenId) {
+  try {
+    const memoraNFT = new ethers.Contract(
+      memoraNFTAddress,
+      memoraNFTABI,
+      memoraProvider
+    );
+
+    const tokenInfo = await memoraNFT.tokenInfo(tokenId);
+    console.log("prompt: ", tokenInfo[5]);
+    return tokenInfo[5];
+  } catch (error) {
+    throw error;
+  }
+}
+
+module.exports = { fetchFIDs, fetchMemoraNFTData, triggerNFT, fetchNFTPrompt };

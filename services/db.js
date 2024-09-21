@@ -25,11 +25,11 @@ function createTables() {
     }
   );
 
-  // Create TRIGGERS table
+  // Create TRIGGERS table with triggerID as primary key
   db.run(
     `CREATE TABLE IF NOT EXISTS TRIGGERS (
-      postID INTEGER PRIMARY KEY,
-      triggerID INTEGER NOT NULL,
+      triggerID INTEGER PRIMARY KEY,
+      postID INTEGER NOT NULL,
       userID INTEGER,
       FOREIGN KEY (userID) REFERENCES USERS (userID)
     )`,
@@ -41,6 +41,43 @@ function createTables() {
       }
     }
   );
+}
+
+function getUsersByIds(userIds) {
+  return new Promise((resolve, reject) => {
+    // Convert the array of userIds into a comma-separated string
+    const placeholders = userIds.map(() => "?").join(",");
+    const query = `SELECT * FROM USERS WHERE userID IN (${placeholders})`;
+
+    db.all(query, userIds, (err, rows) => {
+      if (err) {
+        console.error("Error retrieving users", err);
+        reject(err);
+      } else {
+        console.log(`Retrieved ${rows.length} users`);
+        resolve(rows);
+      }
+    });
+  });
+}
+
+function getUserById(userId) {
+  return new Promise((resolve, reject) => {
+    const query = "SELECT * FROM USERS WHERE userID = ?";
+
+    db.get(query, userId, (err, row) => {
+      if (err) {
+        console.error("Error retrieving user", err);
+        reject(err);
+      } else if (row) {
+        console.log(`Retrieved user with ID: ${userId}`);
+        resolve(row);
+      } else {
+        console.log(`No user found with ID: ${userId}`);
+        resolve(null);
+      }
+    });
+  });
 }
 
 // Function to insert or update a user
@@ -60,25 +97,62 @@ function upsertUser(userID, latestPost) {
   stmt.finalize();
 }
 
-// Function to insert a trigger
-function insertTrigger(postID, triggerID, userID) {
-  const stmt = db.prepare(
-    "INSERT OR REPLACE INTO TRIGGERS (postID, triggerID, userID) VALUES (?, ?, ?)"
-  );
-  stmt.run(postID, triggerID, userID, function (err) {
-    if (err) {
-      console.error("Error inserting trigger", err);
-    } else {
-      console.log(`Trigger inserted with postID: ${postID}`);
-    }
+// Function to insert or update a trigger
+// function upsertTrigger(triggerID, postID, userID) {
+//   const stmt = db.prepare(
+//     "INSERT OR REPLACE INTO TRIGGERS (triggerID, postID, userID) VALUES (?, ?, ?)"
+//   );
+//   stmt.run(triggerID, postID, userID, function (err) {
+//     if (err) {
+//       console.error("Error upserting trigger", err);
+//     } else {
+//       console.log(`Trigger upserted with triggerID: ${triggerID}`);
+//     }
+//   });
+//   stmt.finalize();
+// }
+
+function upsertTrigger(postId, userId) {
+  return new Promise((resolve, reject) => {
+    // First, check if a trigger already exists
+    const checkQuery =
+      "SELECT triggerID FROM TRIGGERS WHERE postID = ? AND userID = ?";
+
+    db.get(checkQuery, [postId, userId], (err, row) => {
+      if (err) {
+        console.error("Error checking existing trigger", err);
+        reject(err);
+        return;
+      }
+
+      if (row) {
+        // Trigger already exists, return the existing triggerId
+        console.log(`Existing trigger found with ID: ${row.triggerID}`);
+        resolve(row.triggerID);
+      } else {
+        // No existing trigger, insert a new one
+        const insertQuery =
+          "INSERT INTO TRIGGERS (postID, userID) VALUES (?, ?)";
+
+        db.run(insertQuery, [postId, userId], function (err) {
+          if (err) {
+            console.error("Error inserting new trigger", err);
+            reject(err);
+          } else {
+            const newTriggerId = this.lastID;
+            console.log(`New trigger inserted with ID: ${newTriggerId}`);
+            resolve(newTriggerId);
+          }
+        });
+      }
+    });
   });
-  stmt.finalize();
 }
 
 // Function to delete a trigger
-function deleteTrigger(postID) {
-  const stmt = db.prepare("DELETE FROM TRIGGERS WHERE postID = ?");
-  stmt.run(postID, function (err) {
+function deleteTrigger(triggerID) {
+  const stmt = db.prepare("DELETE FROM TRIGGERS WHERE triggerID = ?");
+  stmt.run(triggerID, function (err) {
     if (err) {
       console.error("Error deleting trigger", err);
     } else {
@@ -98,3 +172,15 @@ process.on("SIGINT", () => {
     process.exit(0);
   });
 });
+
+getUserById(855266).then((results) => {
+  console.log(results ? results.latestPost > 0 : false);
+});
+
+module.exports = {
+  upsertUser,
+  upsertTrigger,
+  deleteTrigger,
+  getUserById,
+  getUsersByIds,
+};
