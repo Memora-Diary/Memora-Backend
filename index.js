@@ -3,9 +3,11 @@ const app = express();
 const port = 3000;
 const listenToPosts = require("./services/warpcast");
 const cron = require("node-cron");
-
+const cors = require('cors');
 const { fetchNFTPrompt } = require("./services/chain");
 const { giveNegativeFeedback } = require("./services/ai");
+
+app.use(cors());
 
 app.get("/", async (req, res) => {
   await listenToPosts({});
