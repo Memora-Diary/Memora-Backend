@@ -4,20 +4,33 @@ const port = 3000;
 const listenToPosts = require("./services/warpcast");
 const cron = require("node-cron");
 
+const { fetchNFTPrompt } = require("./services/chain");
+const { giveNegativeFeedback } = require("./services/ai");
+
 app.get("/", async (req, res) => {
   await listenToPosts({});
   res.send("Hello World!");
 });
 
-app.post("/listen", async (req, res) => {
+app.post("/finetune-neg", async (req, res) => {
   const { handle } = req.body;
   try {
-    await listenToPosts(handle);
-    res.json({ message: `Listening to posts from @${handle}` });
+    nftId = handle.tokenId;
+    fid = handle.fid;
+
+    let fidData =
+      fid != 0 ? await fetchCastsByFid(fid) : { posts: [""], timestamp: 0 };
+
+    console.log("new posts for user ", fid);
+    posts = fidData.posts.join(";");
+
+    prompt = await fetchNFTPrompt(nftId);
+    await giveNegativeFeedback(prompt, posts);
+    res.json({ message: `Fine-tuned the negative feedback for @${handle}` });
   } catch (error) {
     res
       .status(500)
-      .json({ message: "Error listening to tweets", error: error.message });
+      .json({ message: "Error while finetuning", error: error.message });
   }
 });
 

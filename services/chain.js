@@ -58,7 +58,7 @@ async function fetchMemoraNFTData() {
   }
 }
 
-async function triggerNFT(tokenId) {
+async function triggerNFT(nftId) {
   try {
     const memoraNFT = new ethers.Contract(
       memoraNFTAddress.toLowerCase(),
@@ -72,13 +72,13 @@ async function triggerNFT(tokenId) {
 
     const memoryJudgeSigner = memoraNFT.connect(signer);
 
-    await memoryJudgeSigner.declareTrigger(tokenId);
+    await memoryJudgeSigner.declareTrigger(nftId);
   } catch (error) {
     throw error;
   }
 }
 
-async function fetchNFTPrompt(tokenId) {
+async function fetchNFTPrompt(nftId) {
   try {
     const memoraNFT = new ethers.Contract(
       memoraNFTAddress,
@@ -86,7 +86,7 @@ async function fetchNFTPrompt(tokenId) {
       memoraProvider
     );
 
-    const tokenInfo = await memoraNFT.tokenInfo(tokenId);
+    const tokenInfo = await memoraNFT.tokenInfo(nftId);
     console.log("prompt: ", tokenInfo[5]);
     return tokenInfo[5];
   } catch (error) {

@@ -1,5 +1,5 @@
 const memoraNFTAddress =
-  "0xCF51D633067e9EbB3c8438F6818FF53FccC07b40".toLowerCase();
+  "0x51d5eba67D069812129849Ce5a027459E08767e7".toLowerCase();
 const memoraNFTABI = [
   {
     inputs: [
@@ -493,6 +493,11 @@ const memoraNFTABI = [
             name: "minter",
             type: "address",
           },
+          {
+            internalType: "uint256",
+            name: "fid",
+            type: "uint256",
+          },
         ],
         internalType: "struct MemoraNFTV2.MinterData[]",
         name: "",
@@ -636,6 +641,11 @@ const memoraNFTABI = [
         internalType: "string",
         name: "tokenURI",
         type: "string",
+      },
+      {
+        internalType: "uint256",
+        name: "farcasterID",
+        type: "uint256",
       },
     ],
     name: "mint",
@@ -861,6 +871,11 @@ const memoraNFTABI = [
         internalType: "string",
         name: "uri",
         type: "string",
+      },
+      {
+        internalType: "uint256",
+        name: "farcasterID",
+        type: "uint256",
       },
     ],
     stateMutability: "view",

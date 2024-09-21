@@ -13,44 +13,36 @@ const updatePosts = async (handle) => {
   allMinters = await fetchMemoraNFTData();
   //   dumb: allMinters = [[0, "0xad1aa5d1eea542277cfb451a94843c41d2c25ed8"]];
 
-  // Get the FID from the addresses
-  allFIDs = await fetchFIDs(allMinters);
-
-  // TODO retrieve users / latest post timestamps from DB
+  // Get the FID from the farcaster registry
+  //   allFIDs = await fetchFIDs(allMinters); (no longer needed, we store it)
 
   // Call Farcaster's public hubble to get user's posts
   allPosts = [];
-  for (i in allFIDs) {
-    fid = allFIDs[i];
-    console.log("updating posts for user", fid);
+  for (i in allMinters) {
+    fid = allMinters[i][2];
     let fidData =
       fid != 0 ? await fetchCastsByFid(fid) : { posts: [""], timestamp: 0 };
     storedUser = await getUserById(fid);
-    console.log("ts", fidData.timestamp);
-    console.log("stored", storedUser);
 
     // Only call the AI if there are new posts
-    if (storedUser && storedUser.latestPost < fidData.timestamp) {
+    if (storedUser == null || storedUser.latestPost < fidData.timestamp) {
+      console.log("new posts for user ", fid);
       posts = fidData.posts.join(";");
-      tokenId = allMinters[i][0];
-      prompt = await fetchNFTPrompt(tokenId);
-      res = await callOpenAI(allPosts[i]);
-      console.log(res.toLowerCase());
+      nftId = allMinters[i][0];
+
+      prompt = await fetchNFTPrompt(nftId);
+      res = await callOpenAI(posts);
+
+      console.log("decision: ", res.toLowerCase());
       if (res == "yes") {
-        triggerId = upsertTrigger(tokenId, fid);
-        triggerNFT(tokenId);
-        sendDM(allFIDs[i], triggerId);
+        triggerId = upsertTrigger(nftId, fid);
+        triggerNFT(nftId);
+        sendDM(fid, triggerId);
       }
 
       upsertUser(fid, fidData.timestamp);
     }
-    // timestamp =
-
-    // console.log(posts.slice(-100));
   }
-
-  // Call AI to analyze posts
-  // TODO only if new posts
 };
 
 async function fetchCastsByFid(fid) {
