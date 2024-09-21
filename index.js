@@ -1,7 +1,7 @@
 const express = require("express");
 const app = express();
-const port = 3000;
-const listenToPosts = require("./services/warpcast");
+const port = 3003;
+const updatePosts = require("./services/warpcast");
 const cron = require("node-cron");
 
 const { fetchNFTPrompt } = require("./services/chain");
