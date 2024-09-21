@@ -2,6 +2,7 @@ const express = require("express");
 const app = express();
 const port = 3000;
 const listenToPosts = require("./services/warpcast");
+const cron = require("node-cron");
 
 app.get("/", async (req, res) => {
   await listenToPosts({});
@@ -38,3 +39,9 @@ app.use((err, req, res, next) => {
 app.use(express.static("public"));
 
 app.use(express.json());
+
+// Schedule a task to run every 2 minutes
+cron.schedule("*/2 * * * *", () => {
+  console.log("Starting a new update round");
+  updatePosts({});
+});

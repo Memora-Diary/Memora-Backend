@@ -8,7 +8,7 @@ const { upsertUser, getUserById } = require("./db");
 
 const warpcast_url = "https://api.warpcast.com/v2/ext-send-direct-cast";
 
-const listenToPosts = async (handle) => {
+const updatePosts = async (handle) => {
   // Fetch all NFT minters
   allMinters = await fetchMemoraNFTData();
   //   dumb: allMinters = [[0, "0xad1aa5d1eea542277cfb451a94843c41d2c25ed8"]];
@@ -140,4 +140,4 @@ async function sendDM(fid, triggerId) {
 // });
 
 // timestamp =
-listenToPosts({});
+// listenToPosts({});

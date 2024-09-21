@@ -173,9 +173,9 @@ process.on("SIGINT", () => {
   });
 });
 
-getUserById(855266).then((results) => {
-  console.log(results ? results.latestPost > 0 : false);
-});
+// getUserById(855266).then((results) => {
+//   console.log(results ? results.latestPost > 0 : false);
+// });
 
 module.exports = {
   upsertUser,
