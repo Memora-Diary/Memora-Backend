@@ -12,8 +12,9 @@ app.get("/", async (req, res) => {
 });
 
 app.post("/finetune-neg", async (req, res) => {
-  const { handle } = req.body;
   try {
+    const { handle } = req.body;
+
     nftId = Number(handle.tokenId);
     fid = Number(handle.fid);
 
