@@ -1,7 +1,7 @@
 const OpenAI = require("openai");
 
 const client = new OpenAI({
-  baseURL: "https://llama.us.gaianet.network/v1",
+  baseURL: "https://llama.us.gaianet.network/v1", // http://10.51.40.27:8080/v1
   apiKey: "", // Leave this empty when using Gaia
 });
 
