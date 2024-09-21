@@ -133,3 +133,6 @@ async function sendDM(fid, triggerId) {
 
 // timestamp =
 // listenToPosts({});
+
+
+module.exports = updatePosts;

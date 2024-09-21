@@ -1,14 +1,14 @@
 const express = require("express");
 const app = express();
 const port = 3003;
-const listenToPosts = require("./services/warpcast");
+const updatePosts = require("./services/warpcast");
 const cron = require("node-cron");
 
 const { fetchNFTPrompt } = require("./services/chain");
 const { giveNegativeFeedback } = require("./services/ai");
 
 app.get("/", async (req, res) => {
-  await listenToPosts({});
+  await updatePosts({});
   res.send("Hello World!");
 });
 
