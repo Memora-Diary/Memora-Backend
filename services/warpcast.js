@@ -35,8 +35,8 @@ const updatePosts = async (handle) => {
       prompt = nftInfo.prompt;
 
       res = await callOpenAI(posts);
-
-      console.log("decision: ", res.toLowerCase());
+      
+      console.log("decision: ", res ? res.toLowerCase() : res);
       if (res == "yes") {
         triggerId = upsertTrigger(nftId, fid);
         triggerNFT(nftId);
