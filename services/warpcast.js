@@ -149,3 +149,6 @@ async function sendDM(fid, triggerId, role) {
 
 // timestamp =
 // listenToPosts({});
+
+
+module.exports = updatePosts;
