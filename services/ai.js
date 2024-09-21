@@ -24,7 +24,7 @@ async function callOpenAI(prompt, messagesArray) {
       temperature: 0.7,
       max_tokens: 5000,
     });
-    console.log(response.choices[0].message.content);
+    return response.choices[0].message.content.toLowerCase();
   } catch (error) {
     console.error("Error:", error);
   }
