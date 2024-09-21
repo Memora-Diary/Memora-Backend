@@ -37,15 +37,6 @@ Located in `services/db.js`, this service manages the local SQLite database, sto
 - `POST /world_coin/verify`: Endpoint for World Coin verification 
 
 
-## Dependencies
-
-- express
-- node-cron
-- axios
-- ethers
-- sqlite3
-- openai (custom configuration for Gaia)
-
 ## Note
 
 This README provides an overview of the backend structure. For detailed information about other components of Memora, please refer to the main [Github Organization](https://github.com/Memora-eth).
