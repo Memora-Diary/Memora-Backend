@@ -3,7 +3,7 @@ const app = express();
 const port = 3003;
 const updatePosts = require("./services/warpcast");
 const cron = require("node-cron");
-const cors = require('cors');
+const cors = require("cors");
 const { fetchNFTPrompt } = require("./services/chain");
 const { giveNegativeFeedback } = require("./services/ai");
 
