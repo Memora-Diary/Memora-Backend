@@ -44,7 +44,8 @@ const updatePosts = async (handle) => {
     // Only call the AI if there are new posts
     if (storedUser == null || storedUser.latestPost < fidData.timestamp) {
       console.log("new posts for user ", fid);
-      // Add new message storing logic in this function   
+      // Add new message storing logic in this function as in to add the new messages to the db too  
+      // also as an edge case suppose the user posts more than 1 page of messages then the pages have to be combined and then stored
       let parsedMessage = storedUser.messages===null ? [] : JSON.parse(storedUser.messages);
       const combinedArray = Array.from(new Set([...parsedMessage, ...fidData["posts"]]));
       posts = JSON.stringify(combinedArray);
