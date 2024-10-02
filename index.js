@@ -57,7 +57,7 @@ app.use(express.static("public"));
 app.use(express.json());
 
 // 15 sec loop
-cron.schedule("0 0 * * *", async () => {
+cron.schedule("*/2 * * * *", async () => {
   console.log("Starting a new update round");
 
   try {
