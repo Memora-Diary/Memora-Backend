@@ -15,7 +15,8 @@ function createTables() {
     `CREATE TABLE IF NOT EXISTS USERS (
       userID INTEGER PRIMARY KEY,
       latestPost DATE,
-      invalidUser BOOL
+      invalidUser BOOL,
+      messages TEXT
     )`,
     (err) => {
       if (err) {
@@ -185,6 +186,23 @@ function deleteTrigger(triggerID) {
     stmt.finalize();
   }  
 
+// Function to flag invalid user
+function storeUserMessages(userID, messages) {
+  const stmt = db.prepare("UPDATE USERS SET messages = ? WHERE userID = ?");
+  
+  // Execute the statement, passing in the userID
+  stmt.run(messages, Number(userID), function (err) {
+    if (err) {
+      console.error("Error updating user", err);
+    } else {
+      console.log(`User messages stored. Rows affected: ${this.changes}`);
+    }
+  });
+  
+  // Finalize the statement
+  stmt.finalize();
+}  
+
 
 // Don't forget to close the database connection when your app is shutting down
 process.on("SIGINT", () => {
@@ -207,5 +225,6 @@ module.exports = {
   deleteTrigger,
   getUserById,
   getUsersByIds,
-  flagInvalidUser
+  flagInvalidUser,
+  storeUserMessages
 };
