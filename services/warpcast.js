@@ -6,7 +6,7 @@ const { v4: uuidv4 } = require("uuid");
 
 const { callOpenAI } = require("./ai");
 const { fetchFIDs, fetchMemoraNFTData, triggerNFT } = require("./chain");
-const { upsertUser, getUserById, upsertTrigger } = require("./db");
+const { upsertUser, getUserById, upsertTrigger, flagInvalidUser } = require("./db");
 const { fetchNFTPrompt } = require("./chain");
 
 const warpcast_url = "https://api.warpcast.com/v2/ext-send-direct-cast";
@@ -24,13 +24,20 @@ const updatePosts = async (handle) => {
   updatedUsers = {};
   for (i in allMinters) {
     fid = allMinters[i][2];
+    storedUser = await getUserById(fid);
+    console.log(storedUser);
+    if(storedUser.invalidUser === true) continue;
+    let check = await checkFIDExists(fid); // edge case have to be handled say a now non existing user's FID becomes existing 
+    if(!check){
+      flagInvalidUser(fid);
+      continue;
+    }
     let fidData =
       fid != 0 ? await fetchCastsByFid(fid) : { posts: [""], timestamp: 0 };
     if (fidData.posts.length == 1 && fidData.posts[0] == "") {
       continue;
     }
     console.log("difData, ", fidData);
-    storedUser = await getUserById(fid);
 
     // Only call the AI if there are new posts
     if (storedUser == null || storedUser.latestPost < fidData.timestamp) {
@@ -132,6 +139,31 @@ async function sendDM(fid, triggerId, role) {
       console.log(error);
     });
 }
+
+
+async function checkFIDExists(fid) {
+
+
+let config = {
+  method: 'get',
+  maxBodyLength: Infinity,
+  url: `https://hoyt.farcaster.xyz:2281/v1/userDataByFid?fid=${fid}&user_data_type=1`,
+  headers: { }
+};
+
+axios.request(config)
+.then((response) => {
+  if(response.data.errCode == "not_found"){
+  return false;
+  }
+  else return true;
+})
+.catch((error) => {
+  return(error);
+});
+
+}
+
 
 // TODO with DB:
 // store users: FID, Latest post date, Latest AI decision
