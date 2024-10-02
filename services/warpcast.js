@@ -12,6 +12,7 @@ const { fetchNFTPrompt } = require("./chain");
 const warpcast_url = "https://api.warpcast.com/v2/ext-send-direct-cast";
 
 const updatePosts = async (handle) => {
+  try{
   // Fetch all NFT minters
   allMinters = await fetchMemoraNFTData();
   //   dumb: allMinters = [[0, "0xad1aa5d1eea542277cfb451a94843c41d2c25ed8"]];
@@ -36,8 +37,8 @@ const updatePosts = async (handle) => {
     if (fidData.posts.length == 1 && fidData.posts[0] == "") {
       continue;
     }
-    console.log("difData, ", fidData);
-    if (storedUser.messages == null) {
+    console.log("fidData, ", fidData);
+    if (storedUser != null && storedUser.messages == null) {
       storeUserMessages(fid, JSON.stringify(fidData.posts));
     }
 
@@ -76,6 +77,10 @@ const updatePosts = async (handle) => {
   for (const [key, value] of Object.entries(updatedUsers)) {
     upsertUser(key, value);
   }
+}
+catch (err) {
+  console.log(err);
+}
 };
 
 async function fetchCastsByFid(fid) {
