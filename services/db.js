@@ -170,26 +170,26 @@ function deleteTrigger(triggerID) {
 }
 
 // Function to flag invalid user
-  function flagInvalidUser(userID) {
-    const stmt = db.prepare("UPDATE USERS SET invalidUser = 1 WHERE userID = ?");
-    
-    // Execute the statement, passing in the userID
-    stmt.run(userID, function (err) {
-      if (err) {
-        console.error("Error updating user", err);
-      } else {
-        console.log(`User flagged as invalid. Rows affected: ${this.changes}`);
-      }
-    });
-    
-    // Finalize the statement
-    stmt.finalize();
-  }  
+function flagInvalidUser(userID) {
+  const stmt = db.prepare("UPDATE USERS SET invalidUser = 1 WHERE userID = ?");
+
+  // Execute the statement, passing in the userID
+  stmt.run(userID, function (err) {
+    if (err) {
+      console.error("Error updating user", err);
+    } else {
+      console.log(`User flagged as invalid. Rows affected: ${this.changes}`);
+    }
+  });
+
+  // Finalize the statement
+  stmt.finalize();
+}
 
 // Function to flag invalid user
 function storeUserMessages(userID, messages) {
   const stmt = db.prepare("UPDATE USERS SET messages = ? WHERE userID = ?");
-  
+
   // Execute the statement, passing in the userID
   stmt.run(messages, Number(userID), function (err) {
     if (err) {
@@ -198,10 +198,10 @@ function storeUserMessages(userID, messages) {
       console.log(`User messages stored. Rows affected: ${this.changes}`);
     }
   });
-  
+
   // Finalize the statement
   stmt.finalize();
-}  
+}
 
 
 // Don't forget to close the database connection when your app is shutting down

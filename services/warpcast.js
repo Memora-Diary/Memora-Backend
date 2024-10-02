@@ -25,9 +25,9 @@ const updatePosts = async (handle) => {
   for (i in allMinters) {
     fid = allMinters[i][2];
     storedUser = await getUserById(fid);
-    if(storedUser!= null && storedUser.invalidUser === true) continue;
+    if (storedUser != null && storedUser.invalidUser === true) continue;
     let check = await checkFIDExists(fid); // edge case have to be handled say a now non existing user's FID becomes existing 
-    if(storedUser!= null && check){
+    if (storedUser != null && check) {
       flagInvalidUser(fid);
       continue;
     }
@@ -37,8 +37,8 @@ const updatePosts = async (handle) => {
       continue;
     }
     console.log("difData, ", fidData);
-    if(storedUser.messages == null){
-      storeUserMessages(fid,JSON.stringify(fidData.posts));
+    if (storedUser.messages == null) {
+      storeUserMessages(fid, JSON.stringify(fidData.posts));
     }
 
     // Only call the AI if there are new posts
@@ -46,7 +46,7 @@ const updatePosts = async (handle) => {
       console.log("new posts for user ", fid);
       // Add new message storing logic in this function as in to add the new messages to the db too  
       // also as an edge case suppose the user posts more than 1 page of messages then the pages have to be combined and then stored
-      let parsedMessage = storedUser.messages===null ? [] : JSON.parse(storedUser.messages);
+      let parsedMessage = storedUser.messages === null ? [] : JSON.parse(storedUser.messages);
       const combinedArray = Array.from(new Set([...parsedMessage, ...fidData["posts"]]));
       posts = JSON.stringify(combinedArray);
 
@@ -87,13 +87,12 @@ async function fetchCastsByFid(fid) {
     do {
       // Fetch the casts, passing the nextPageToken if available
       const response = await axios.get(
-        `https://hoyt.farcaster.xyz:2281/v1/castsByFid?fid=${fid}${
-          nextPageToken ? `&pageToken=${nextPageToken}` : ""
+        `https://hoyt.farcaster.xyz:2281/v1/castsByFid?fid=${fid}${nextPageToken ? `&pageToken=${nextPageToken}` : ""
         }`
       );
-      
+
       const { messages, nextPageToken: newPageToken } = response.data;
-      
+
       if (messages.length === 0 && !nextPageToken) {
         return { posts: [""], timestamp: 0 };
       }
@@ -173,23 +172,23 @@ async function sendDM(fid, triggerId, role) {
 
 async function checkFIDExists(fid) {
 
-let config = {
-  method: 'get',
-  maxBodyLength: Infinity,
-  url: `https://hoyt.farcaster.xyz:2281/v1/userDataByFid?fid=${fid}&user_data_type=1`,
-  headers: { }
-};
+  let config = {
+    method: 'get',
+    maxBodyLength: Infinity,
+    url: `https://hoyt.farcaster.xyz:2281/v1/userDataByFid?fid=${fid}&user_data_type=1`,
+    headers: {}
+  };
 
-axios.request(config)
-.then((response) => {
-  if(response.data.errCode == "not_found"){
-  return false;
-  }
-  else return true;
-})
-.catch((error) => {
-  return(error);
-});
+  axios.request(config)
+    .then((response) => {
+      if (response.data.errCode == "not_found") {
+        return false;
+      }
+      else return true;
+    })
+    .catch((error) => {
+      return (error);
+    });
 
 }
 
