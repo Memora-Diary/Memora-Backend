@@ -38,8 +38,10 @@ const updatePosts = async (handle) => {
       continue;
     }
     console.log("fidData, ", fidData);
-    if (storedUser != null && storedUser.messages == null) {
-      storeUserMessages(fid, JSON.stringify(fidData.posts));
+    if (storedUser != null) {
+      if (storedUser.messages == null) {
+        storeUserMessages(fid, JSON.stringify(fidData.posts));
+      }
     }
 
     // Only call the AI if there are new posts
