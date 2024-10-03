@@ -49,7 +49,10 @@ const updatePosts = async (handle) => {
       console.log("new posts for user ", fid);
       // Add new message storing logic in this function as in to add the new messages to the db too  
       // also as an edge case suppose the user posts more than 1 page of messages then the pages have to be combined and then stored
-      let parsedMessage = storedUser.messages === null ? [] : JSON.parse(storedUser.messages);
+      let parsedMessage = []
+      if(storedUser!= null) {
+      parsedMessage = storedUser.messages === null ? [] : JSON.parse(storedUser.messages);
+      }
       const combinedArray = Array.from(new Set([...parsedMessage, ...fidData["posts"]]));
       posts = JSON.stringify(combinedArray);
 
@@ -71,13 +74,14 @@ const updatePosts = async (handle) => {
           sendDM(heirFid, triggerId, "heir");
         }
       }
+      let timestamp = fidData.timestamp;
+      updatedUsers[fid] = {timestamp,posts};
 
-      updatedUsers[fid] = fidData.timestamp;
     }
   }
 
   for (const [key, value] of Object.entries(updatedUsers)) {
-    upsertUser(key, value);
+    upsertUser(key, value.timestamp, value.posts);
   }
 }
 catch (err) {

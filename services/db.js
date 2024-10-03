@@ -84,15 +84,15 @@ function getUserById(userId) {
 }
 
 // Function to insert or update a user
-function upsertUser(userID, latestPost) {
+function upsertUser(userID, latestPost, messages) {
   userID = Number(userID);
 
   const stmt = db.prepare(`
-      INSERT OR REPLACE INTO USERS (userID, latestPost)
-      VALUES (?, ?)
+      INSERT OR REPLACE INTO USERS (userID, latestPost, messages)
+      VALUES (?, ?, ?)
     `);
 
-  stmt.run(userID, latestPost, function (err) {
+  stmt.run(userID, latestPost, messages, function (err) {
     if (err) {
       console.error("Error upserting user", err);
     } else {
@@ -189,6 +189,7 @@ function flagInvalidUser(userID) {
 // Function to flag invalid user
 function storeUserMessages(userID, messages) {
   const stmt = db.prepare("UPDATE USERS SET messages = ? WHERE userID = ?");
+  console.log({stmt, messages, userID});
 
   // Execute the statement, passing in the userID
   stmt.run(messages, Number(userID), function (err) {
