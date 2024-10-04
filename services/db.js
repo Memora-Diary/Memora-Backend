@@ -189,7 +189,6 @@ function flagInvalidUser(userID) {
 // Function to flag invalid user
 function storeUserMessages(userID, messages) {
   const stmt = db.prepare("UPDATE USERS SET messages = ? WHERE userID = ?");
-  console.log({stmt, messages, userID});
 
   // Execute the statement, passing in the userID
   stmt.run(messages, Number(userID), function (err) {

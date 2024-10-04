@@ -183,7 +183,6 @@ async function sendDM(fid, triggerId, role) {
 async function checkFIDExists(fid) {
 try{  fid = ethers.toBeHex(fid);
   fid = fid.toString();
-  console.log("inside", {fid})
   let config = {
     method: 'get',
     maxBodyLength: Infinity,
