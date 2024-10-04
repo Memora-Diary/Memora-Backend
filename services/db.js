@@ -174,7 +174,7 @@ function flagInvalidUser(userID) {
   const stmt = db.prepare("UPDATE USERS SET invalidUser = 1 WHERE userID = ?");
 
   // Execute the statement, passing in the userID
-  stmt.run(userID, function (err) {
+  stmt.run(Number(userID), function (err) {
     if (err) {
       console.error("Error updating user", err);
     } else {

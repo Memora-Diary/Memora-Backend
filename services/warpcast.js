@@ -27,9 +27,8 @@ const updatePosts = async (handle) => {
     fid = allMinters[i][2];
     storedUser = await getUserById(fid);
     if (storedUser != null && storedUser.invalidUser === true) continue;
-    let check = await checkFIDExists(fid); // edge case have to be handled say a now non existing user's FID becomes existing 
-    if (storedUser != null && check) {
-      flagInvalidUser(fid);
+    let check = await checkFIDExists(fid);
+    if (storedUser == null && !check) {      
       continue;
     }
     let fidData =
@@ -182,7 +181,9 @@ async function sendDM(fid, triggerId, role) {
 
 
 async function checkFIDExists(fid) {
-
+try{  fid = ethers.toBeHex(fid);
+  fid = fid.toString();
+  console.log("inside", {fid})
   let config = {
     method: 'get',
     maxBodyLength: Infinity,
@@ -190,17 +191,16 @@ async function checkFIDExists(fid) {
     headers: {}
   };
 
-  axios.request(config)
-    .then((response) => {
-      if (response.data.errCode == "not_found") {
-        return false;
-      }
-      else return true;
-    })
-    .catch((error) => {
-      return (error);
-    });
-
+ let response = await axios.request(config);
+ if(response.data.data.fid){
+  return true;
+ }
+ else{
+  return false;
+ }   }
+ catch(error){
+   return false;
+ }
 }
 
 
