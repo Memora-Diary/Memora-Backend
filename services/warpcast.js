@@ -12,80 +12,96 @@ const { fetchNFTPrompt } = require("./chain");
 const warpcast_url = "https://api.warpcast.com/v2/ext-send-direct-cast";
 
 const updatePosts = async (handle) => {
-  try{
-  // Fetch all NFT minters
-  allMinters = await fetchMemoraNFTData();
-  //   dumb: allMinters = [[0, "0xad1aa5d1eea542277cfb451a94843c41d2c25ed8"]];
+  try {
+    // Fetch all NFT minters
+    allMinters = await fetchMemoraNFTData();
+    //   dumb: allMinters = [[0, "0xad1aa5d1eea542277cfb451a94843c41d2c25ed8"]];
 
-  // Get the FID from the farcaster registry
-  //   allFIDs = await fetchFIDs(allMinters); (no longer needed, we store it)
+    // Get the FID from the farcaster registry
+    //   allFIDs = await fetchFIDs(allMinters); (no longer needed, we store it)
 
-  // Call Farcaster's public hubble to get user's posts
-  allPosts = [];
-  updatedUsers = {};
-  for (i in allMinters) {
-    fid = allMinters[i][2];
-    storedUser = await getUserById(fid);
-    if (storedUser != null && storedUser.invalidUser === true) continue;
-    let check = await checkFIDExists(fid);
-    if (storedUser == null && !check) {      
-      continue;
-    }
-    let fidData =
-      fid != 0 ? await fetchCastsByFid(fid) : { posts: [""], timestamp: 0 };
-    if (fidData.posts.length == 1 && fidData.posts[0] == "") {
-      continue;
-    }
-    console.log("fidData, ", fidData);
-    if (storedUser != null) {
-      if (storedUser.messages == null) {
-        storeUserMessages(fid, JSON.stringify(fidData.posts));
+    // Call Farcaster's public hubble to get user's posts
+    allPosts = [];
+    updatedUsers = {};
+    for (i in allMinters) {
+      fid = allMinters[i][2];
+      let storedUser = null;
+      try {
+        storedUser = await getUserById(fid);
+        
+      } catch (error) {
+        console.error(`Error fetching or creating user with ID ${fid}:`, error);
+        continue; // Skip this user and move to the next one
       }
-    }
 
-    // Only call the AI if there are new posts
-    if (storedUser == null || storedUser.latestPost < fidData.timestamp) {
-      console.log("new posts for user ", fid);
-      // Add new message storing logic in this function as in to add the new messages to the db too  
-      // also as an edge case suppose the user posts more than 1 page of messages then the pages have to be combined and then stored
-      let parsedMessage = []
-      if(storedUser!= null) {
-      parsedMessage = storedUser.messages === null ? [] : JSON.parse(storedUser.messages);
+      if (storedUser != null && storedUser.invalidUser === true) continue;
+      let check = await checkFIDExists(fid);
+      console.log("checking user exists : ",check);
+      if (storedUser == null && !check) {     
+        console.log("user doesn't exist, moving on....."); 
+        continue;
       }
-      const combinedArray = Array.from(new Set([...parsedMessage, ...fidData["posts"]]));
-      posts = JSON.stringify(combinedArray);
-
-      nftId = Number(allMinters[i][0]);
-
-      nftInfo = await fetchNFTPrompt(nftId);
-      prompt = nftInfo.prompt;
-
-      res = await callOpenAI(prompt, posts);
-
-      console.log("decision: ", res);
-      if (res == "yes") {
-        triggerId = Number(await upsertTrigger(nftId, fid));
-        triggerNFT(nftId);
-        sendDM(fid, triggerId, "minter");
-        heirFid = Number(await fetchFIDs([[0, nftInfo.heir]]));
-        console.log("heir", heirFid);
-        if (heirFid != 0) {
-          sendDM(heirFid, triggerId, "heir");
+      if (!storedUser) {
+        // If user doesn't exist, create a new user
+        storedUser = await upsertUser(fid, new Date(), JSON.stringify([]));
+        console.log(`Created new user with ID: ${fid}`);
+      }
+      let fidData =
+        fid != 0 ? await fetchCastsByFid(fid) : { posts: [""], timestamp: 0 };
+      if (fidData.posts.length == 1 && fidData.posts[0] == "") {
+        continue;
+      }
+      console.log("fidData, ", fidData);
+      if (storedUser != null) {
+        if (storedUser.messages == null) {
+          storeUserMessages(fid, JSON.stringify(fidData.posts));
         }
       }
-      let timestamp = fidData.timestamp;
-      updatedUsers[fid] = {timestamp,posts};
+      // Only call the AI if there are new posts
+      if (JSON.parse(storedUser.messages).length == 0 || storedUser.latestPost < fidData.timestamp) {
+        console.log("new posts for user ", fid);
+        // Add new message storing logic in this function as in to add the new messages to the db too  
+        // also as an edge case suppose the user posts more than 1 page of messages then the pages have to be combined and then stored
+        let parsedMessage = []
+        if(storedUser!= null) {
+        parsedMessage = storedUser.messages === null ? [] : JSON.parse(storedUser.messages);
+        }
+        const combinedArray = Array.from(new Set([...parsedMessage, ...fidData["posts"]]));
+        console.log({combinedArray});        
+        posts = JSON.stringify(combinedArray);
 
+        nftId = Number(allMinters[i][0]);
+
+        nftInfo = await fetchNFTPrompt(nftId);
+        prompt = nftInfo.prompt;
+
+        res = await callOpenAI(prompt, posts);
+
+        console.log("decision: ", res);
+        if (res == "yes") {
+          try {
+            triggerId = Number(await upsertTrigger(nftId, fid));
+            triggerNFT(nftId);
+            sendDM(fid, triggerId, "minter");
+            heirFid = Number(await fetchFIDs([[0, nftInfo.heir]]));
+            console.log("heir", heirFid);
+            if (heirFid != 0) {
+              sendDM(heirFid, triggerId, "heir");
+            }
+          } catch (error) {
+            console.error(`Error creating trigger for user ${fid}:`, error);
+          }
+        }
+        let timestamp = fidData.timestamp;
+        // updatedUsers[fid] = {timestamp,posts};
+        upsertUser(fid,timestamp,posts);
+
+      }
     }
+ 
+  } catch (err) {
+    console.error("Error in updatePosts:", err);
   }
-
-  for (const [key, value] of Object.entries(updatedUsers)) {
-    upsertUser(key, value.timestamp, value.posts);
-  }
-}
-catch (err) {
-  console.log(err);
-}
 };
 
 async function fetchCastsByFid(fid) {
