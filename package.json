@@ -19,6 +19,7 @@
     "node-cron": "^3.0.3",
     "openai": "^4.63.0",
     "sequelize": "^6.37.4",
+    "sequelize-cli": "^6.6.2",
     "sqlite3": "^5.1.7",
     "uuid": "^10.0.0"
   }
