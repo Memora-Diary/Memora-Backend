@@ -7,13 +7,26 @@ const cors = require("cors");
 const { fetchNFTPrompt } = require("./services/chain");
 const { giveNegativeFeedback } = require("./services/ai");
 const { createTables } = require("./services/db");
+const verifyToken = require("./middleware/authMiddleware");
 
 app.use(cors());
+app.use(express.json());
+app.use(express.static("public"));
 
+// Public routes
 app.get("/", async (req, res) => {
   res.send("Hello World!");
 });
 
+app.get("/getAddressForName", verifyToken, async (req, res) => {
+  res.send("have to implement this");
+});
+
+app.get("/postNametoAddress", verifyToken, async (req, res) => {
+  res.send("have to implement this");
+});
+
+// Protected routes
 app.post("/finetune-neg", async (req, res) => {
   try {
     const { handle } = req.body;
@@ -44,6 +57,12 @@ app.post("/world_coin/verify", async (req, res) => {
   res.json({ verified: true });
 });
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send("Something broke!");
+});
+
 // Create tables before starting the server
 createTables().then(() => {
   app.listen(port, () => {
@@ -65,12 +84,3 @@ createTables().then(() => {
   console.error("Failed to create tables:", error);
   process.exit(1);
 });
-
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send("Something broke!");
-});
-
-app.use(express.static("public"));
-
-app.use(express.json());
