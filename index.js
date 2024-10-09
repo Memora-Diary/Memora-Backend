@@ -6,7 +6,7 @@ const cron = require("node-cron");
 const cors = require("cors");
 const { fetchNFTPrompt } = require("./services/chain");
 const { giveNegativeFeedback } = require("./services/ai");
-const { createTables } = require("./services/db");
+const { createTables, mapAddressToName, getAddressForName } = require("./services/db");
 const verifyToken = require("./middleware/authMiddleware");
 
 app.use(cors());
@@ -18,12 +18,33 @@ app.get("/", async (req, res) => {
   res.send("Hello World!");
 });
 
-app.get("/getAddressForName", verifyToken, async (req, res) => {
-  res.send("have to implement this");
+app.get("/getAddressForName/:name", verifyToken, async (req, res) => {
+  try {
+    const { name } = req.params;
+    const address = await getAddressForName(name);
+    if (address) {
+      res.json({ name, address });
+    } else {
+      res.status(404).json({ message: "Name not found" });
+    }
+  } catch (error) {
+    console.error("Error in getAddressForName:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 });
 
-app.get("/postNametoAddress", verifyToken, async (req, res) => {
-  res.send("have to implement this");
+app.post("/mapNameToAddress", verifyToken, async (req, res) => {
+  try {
+    const { name, address } = req.body;
+    if (!name || !address) {
+      return res.status(400).json({ message: "Name and address are required" });
+    }
+    await mapAddressToName(address, name);
+    res.json({ message: "Name mapped to address successfully" });
+  } catch (error) {
+    console.error("Error in mapNameToAddress:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 });
 
 // Protected routes

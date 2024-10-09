@@ -34,6 +34,20 @@ const Trigger = sequelize.define('Trigger', {
   }
 });
 
+// New model for address-name mapping
+const AddressName = sequelize.define('AddressName', {
+  address: {
+    type: DataTypes.STRING,
+    primaryKey: true,
+    allowNull: false,
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true,
+  },
+});
+
 // Define associations
 User.hasMany(Trigger, { foreignKey: 'userID' });
 Trigger.belongsTo(User, { foreignKey: 'userID' });
@@ -155,6 +169,47 @@ async function storeUserMessages(userID, messages) {
   }
 }
 
+// New function to map an address to a name
+async function mapAddressToName(address, name) {
+  try {
+    const [addressName, created] = await AddressName.findOrCreate({
+      where: { address },
+      defaults: { name },
+    });
+
+    if (!created) {
+      // If the address already exists, update the name
+      await addressName.update({ name });
+    }
+
+    console.log(`Address ${address} mapped to name ${name}`);
+    return addressName;
+  } catch (error) {
+    console.error('Error mapping address to name:', error);
+    throw error;
+  }
+}
+
+// New function to fetch an address for a given name
+async function getAddressForName(name) {
+  try {
+    const addressName = await AddressName.findOne({
+      where: { name },
+    });
+
+    if (addressName) {
+      console.log(`Found address ${addressName.address} for name ${name}`);
+      return addressName.address;
+    } else {
+      console.log(`No address found for name ${name}`);
+      return null;
+    }
+  } catch (error) {
+    console.error('Error fetching address for name:', error);
+    throw error;
+  }
+}
+
 // Close database connection when the app is shutting down
 process.on('SIGINT', async () => {
   try {
@@ -175,5 +230,7 @@ module.exports = {
   getUserById,
   getUsersByIds,
   flagInvalidUser,
-  storeUserMessages
+  storeUserMessages,
+  mapAddressToName,
+  getAddressForName
 };
