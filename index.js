@@ -6,6 +6,7 @@ const cron = require("node-cron");
 const cors = require("cors");
 const { fetchNFTPrompt } = require("./services/chain");
 const { giveNegativeFeedback } = require("./services/ai");
+const { createTables } = require("./services/db");
 
 app.use(cors());
 
@@ -43,8 +44,26 @@ app.post("/world_coin/verify", async (req, res) => {
   res.json({ verified: true });
 });
 
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
+// Create tables before starting the server
+createTables().then(() => {
+  app.listen(port, () => {
+    console.log(`Server is running on http://localhost:${port}`);
+  });
+
+  // Start the cron job after creating tables
+  cron.schedule("*/2 * * * *", async () => {
+    console.log("Starting a new update round");
+
+    try {
+      await updatePosts({});
+      console.log("Finished round, sleeping...");
+    } catch (error) {
+      console.error("An error occurred during the update:", error);
+    }
+  });
+}).catch(error => {
+  console.error("Failed to create tables:", error);
+  process.exit(1);
 });
 
 app.use((err, req, res, next) => {
@@ -55,16 +74,3 @@ app.use((err, req, res, next) => {
 app.use(express.static("public"));
 
 app.use(express.json());
-
-// 15 sec loop
-cron.schedule("*/60 * * * * *", async () => {
-  console.log("Starting a new update round");
-
-  try {
-    // Wait for updatePosts to complete before continuing
-    await updatePosts({});
-    console.log("Finished round, sleeping...");
-  } catch (error) {
-    console.error("An error occurred during the update:", error);
-  }
-});

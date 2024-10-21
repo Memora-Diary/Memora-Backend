@@ -74,7 +74,7 @@ async function triggerNFT(nftId) {
 
     await memoryJudgeSigner.declareTrigger(nftId);
   } catch (error) {
-    throw error;
+    console.log(error);
   }
 }
 

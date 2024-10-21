@@ -6,86 +6,147 @@ const { v4: uuidv4 } = require("uuid");
 
 const { callOpenAI } = require("./ai");
 const { fetchFIDs, fetchMemoraNFTData, triggerNFT } = require("./chain");
-const { upsertUser, getUserById, upsertTrigger } = require("./db");
+const { upsertUser, getUserById, upsertTrigger, flagInvalidUser, storeUserMessages } = require("./db");
 const { fetchNFTPrompt } = require("./chain");
 
 const warpcast_url = "https://api.warpcast.com/v2/ext-send-direct-cast";
 
 const updatePosts = async (handle) => {
-  // Fetch all NFT minters
-  allMinters = await fetchMemoraNFTData();
-  //   dumb: allMinters = [[0, "0xad1aa5d1eea542277cfb451a94843c41d2c25ed8"]];
+  try {
+    // Fetch all NFT minters
+    allMinters = await fetchMemoraNFTData();
+    //   dumb: allMinters = [[0, "0xad1aa5d1eea542277cfb451a94843c41d2c25ed8"]];
 
-  // Get the FID from the farcaster registry
-  //   allFIDs = await fetchFIDs(allMinters); (no longer needed, we store it)
+    // Get the FID from the farcaster registry
+    //   allFIDs = await fetchFIDs(allMinters); (no longer needed, we store it)
 
-  // Call Farcaster's public hubble to get user's posts
-  allPosts = [];
-  updatedUsers = {};
-  for (i in allMinters) {
-    fid = allMinters[i][2];
-    let fidData =
-      fid != 0 ? await fetchCastsByFid(fid) : { posts: [""], timestamp: 0 };
-    if (fidData.posts.length == 1 && fidData.posts[0] == "") {
-      continue;
-    }
-    console.log("difData, ", fidData);
-    storedUser = await getUserById(fid);
-
-    // Only call the AI if there are new posts
-    if (storedUser == null || storedUser.latestPost < fidData.timestamp) {
-      console.log("new posts for user ", fid);
-      posts = JSON.stringify(fidData["posts"]);
-
-      nftId = Number(allMinters[i][0]);
-
-      nftInfo = await fetchNFTPrompt(nftId);
-      prompt = nftInfo.prompt;
-
-      res = await callOpenAI(prompt, posts);
-
-      console.log("decision: ", res);
-      if (res == "yes") {
-        triggerId = Number(await upsertTrigger(nftId, fid));
-        triggerNFT(nftId);
-        sendDM(fid, triggerId, "minter");
-        heirFid = Number(await fetchFIDs([[0, nftInfo.heir]]));
-        console.log("heir", heirFid);
-        if (heirFid != 0) {
-          sendDM(heirFid, triggerId, "heir");
-        }
+    // Call Farcaster's public hubble to get user's posts
+    allPosts = [];
+    updatedUsers = {};
+    for (i in allMinters) {
+      fid = allMinters[i][2];
+      let storedUser = null;
+      try {
+        storedUser = await getUserById(fid);
+        
+      } catch (error) {
+        console.error(`Error fetching or creating user with ID ${fid}:`, error);
+        continue; // Skip this user and move to the next one
       }
 
-      updatedUsers[fid] = fidData.timestamp;
-    }
-  }
+      if (storedUser != null && storedUser.invalidUser === true) continue;
+      let check = await checkFIDExists(fid);
+      console.log("checking user exists : ",check);
+      if (storedUser == null && !check) {     
+        console.log("user doesn't exist, moving on....."); 
+        continue;
+      }
+      if (!storedUser) {
+        // If user doesn't exist, create a new user
+        storedUser = await upsertUser(fid, new Date(), JSON.stringify([]));
+        console.log(`Created new user with ID: ${fid}`);
+      }
+      let fidData =
+        fid != 0 ? await fetchCastsByFid(fid) : { posts: [""], timestamp: 0 };
+      if (fidData.posts.length == 1 && fidData.posts[0] == "") {
+        continue;
+      }
+      console.log("fidData, ", fidData);
+      if (storedUser != null) {
+        if (storedUser.messages == null) {
+          storeUserMessages(fid, JSON.stringify(fidData.posts));
+        }
+      }
+      // Only call the AI if there are new posts
+      if (JSON.parse(storedUser.messages).length == 0 || storedUser.latestPost < fidData.timestamp) {
+        console.log("new posts for user ", fid);
+        // Add new message storing logic in this function as in to add the new messages to the db too  
+        // also as an edge case suppose the user posts more than 1 page of messages then the pages have to be combined and then stored
+        let parsedMessage = []
+        if(storedUser!= null) {
+        parsedMessage = storedUser.messages === null ? [] : JSON.parse(storedUser.messages);
+        }
+        const combinedArray = Array.from(new Set([...parsedMessage, ...fidData["posts"]]));
+        console.log({combinedArray});        
+        posts = JSON.stringify(combinedArray);
 
-  for (const [key, value] of Object.entries(updatedUsers)) {
-    upsertUser(key, value);
+        nftId = Number(allMinters[i][0]);
+
+        nftInfo = await fetchNFTPrompt(nftId);
+        prompt = nftInfo.prompt;
+
+        res = await callOpenAI(prompt, posts);
+
+        console.log("decision: ", res);
+        if (res == "yes") {
+          try {
+            triggerId = Number(await upsertTrigger(nftId, fid));
+            triggerNFT(nftId);
+            sendDM(fid, triggerId, "minter");
+            heirFid = Number(await fetchFIDs([[0, nftInfo.heir]]));
+            console.log("heir", heirFid);
+            if (heirFid != 0) {
+              sendDM(heirFid, triggerId, "heir");
+            }
+          } catch (error) {
+            console.error(`Error creating trigger for user ${fid}:`, error);
+          }
+        }
+        let timestamp = fidData.timestamp;
+        // updatedUsers[fid] = {timestamp,posts};
+        upsertUser(fid,timestamp,posts);
+
+      }
+    }
+ 
+  } catch (err) {
+    console.error("Error in updatePosts:", err);
   }
 };
 
 async function fetchCastsByFid(fid) {
+  let allMessages = [];
+  let nextPageToken = "";
+  let timestamp = 0;
+
   try {
-    const response = await axios.get(
-      `https://hoyt.farcaster.xyz:2281/v1/castsByFid?fid=${fid}`
-    );
-    messages = response.data.messages;
-    if (messages.length == 0) {
-      return { posts: [""], timestamp: 0 };
-    }
-    const isSorted = messages.every(
+    do {
+      // Fetch the casts, passing the nextPageToken if available
+      const response = await axios.get(
+        `https://hoyt.farcaster.xyz:2281/v1/castsByFid?fid=${fid}${nextPageToken ? `&pageToken=${nextPageToken}` : ""
+        }`
+      );
+
+      const { messages, nextPageToken: newPageToken } = response.data;
+
+      if (messages.length === 0 && !nextPageToken) {
+        return { posts: [""], timestamp: 0 };
+      }
+
+      // Append the fetched messages to the allMessages array
+      allMessages = allMessages.concat(messages);
+      nextPageToken = newPageToken;
+
+    } while (nextPageToken); // Continue fetching until no nextPageToken
+
+    // Ensure messages are sorted by timestamp
+    const isSorted = allMessages.every(
       (message, index, array) =>
-        index === 0 || message.data.timestamp >= array[index - 1].data.timestamp
+        index === 0 ||
+        message.data.timestamp >= array[index - 1].data.timestamp
     );
     if (!isSorted) {
       console.log("Messages were not sorted. Sorting now...");
-      messages = messages.sort((a, b) => a.data.timestamp - b.data.timestamp);
+      allMessages = allMessages.sort(
+        (a, b) => a.data.timestamp - b.data.timestamp
+      );
     }
-    timestamp = messages.slice(-1)[0].data.timestamp;
-    // console.log(messages);
+
+    // Extract the timestamp of the last message
+    timestamp = allMessages.slice(-1)[0].data.timestamp;
+
     return {
-      posts: messages.map((message) =>
+      posts: allMessages.map((message) =>
         message.data.castAddBody ? message.data.castAddBody.text : ""
       ),
       timestamp: timestamp,
@@ -94,6 +155,7 @@ async function fetchCastsByFid(fid) {
     throw error;
   }
 }
+
 
 async function sendDM(fid, triggerId, role) {
   fid = Number(fid);
@@ -132,6 +194,30 @@ async function sendDM(fid, triggerId, role) {
       console.log(error);
     });
 }
+
+
+async function checkFIDExists(fid) {
+try{  fid = ethers.toBeHex(fid);
+  fid = fid.toString();
+  let config = {
+    method: 'get',
+    maxBodyLength: Infinity,
+    url: `https://hoyt.farcaster.xyz:2281/v1/userDataByFid?fid=${fid}&user_data_type=1`,
+    headers: {}
+  };
+
+ let response = await axios.request(config);
+ if(response.data.data.fid){
+  return true;
+ }
+ else{
+  return false;
+ }   }
+ catch(error){
+   return false;
+ }
+}
+
 
 // TODO with DB:
 // store users: FID, Latest post date, Latest AI decision
