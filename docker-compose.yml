@@ -1,16 +1,54 @@
 version: '3'
 services:
+  memoramdb:
+    image: postgres:14.6
+    restart: always
+    tty: true
+    container_name: memora-db
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: memora
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - '6549:5432'
+    networks:
+      - memora-network
+  redis:
+    image: redis:latest
+    container_name: redis-memora
+    restart: unless-stopped
+    ports:
+      - 6389:6379
+    networks:
+      - memora-network
   app:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: node-app
     ports:
-      - "3003:3003" # Maps container port 3003 to host port 3003
+      - "3003:3003"
     volumes:
-      - .:/usr/src/app # Mounts the current directory to the working directory in the container
-      - /usr/src/app/node_modules # Prevents overwriting node_modules in the container
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+      - ./migrations:/usr/src/app/migrations
     environment:
       NODE_ENV: development
+      DB_HOST: memoramdb
+      DB_PORT: 5432
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: memora
+    networks:
+      - memora-network
+networks:
+  memora-network:
+    driver: "bridge"
+    ipam:
+     config:
+       - subnet: 15.10.11.0/24
 volumes:
-  db-data: # Creates a named volume for persisting the database data
+  postgres_data:

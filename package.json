@@ -20,6 +20,8 @@
     "node-cron": "^3.0.3",
     "node-jsonwebtoken": "^0.0.1",
     "openai": "^4.63.0",
+    "pg": "^8.11.3",
+    "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.4",
     "sequelize-cli": "^6.6.2",
     "sqlite3": "^5.1.7",
