@@ -6,14 +6,48 @@ const cron = require("node-cron");
 const cors = require("cors");
 const { fetchNFTPrompt } = require("./services/chain");
 const { giveNegativeFeedback } = require("./services/ai");
-const { createTables } = require("./services/db");
+const { createTables, mapAddressToName, getAddressForName, getContactsForUser } = require("./services/db");
+const verifyToken = require("./middleware/authMiddleware");
 
 app.use(cors());
+app.use(express.json());
+app.use(express.static("public"));
 
+// Public routes
 app.get("/", async (req, res) => {
   res.send("Hello World!");
 });
 
+app.get("/getAddressForName/:ownerAddress/:name", verifyToken, async (req, res) => {
+  try {
+    const { ownerAddress, name } = req.params;
+    const address = await getAddressForName(ownerAddress, name);
+    if (address) {
+      res.json({ ownerAddress, name, address });
+    } else {
+      res.status(404).json({ message: "Name not found for this owner" });
+    }
+  } catch (error) {
+    console.error("Error in getAddressForName:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.post("/mapNameToAddress", verifyToken, async (req, res) => {
+  try {
+    const { ownerAddress, name, address } = req.body;
+    if (!ownerAddress || !name || !address) {
+      return res.status(400).json({ message: "Owner address, name, and address are required" });
+    }
+    await mapAddressToName(ownerAddress, address, name);
+    res.json({ message: "Name mapped to address successfully" });
+  } catch (error) {
+    console.error("Error in mapNameToAddress:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Protected routes
 app.post("/finetune-neg", async (req, res) => {
   try {
     const { handle } = req.body;
@@ -44,6 +78,12 @@ app.post("/world_coin/verify", async (req, res) => {
   res.json({ verified: true });
 });
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send("Something broke!");
+});
+
 // Create tables before starting the server
 createTables().then(() => {
   app.listen(port, () => {
@@ -66,11 +106,13 @@ createTables().then(() => {
   process.exit(1);
 });
 
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send("Something broke!");
+app.get("/getContacts/:ownerAddress", verifyToken, async (req, res) => {
+  try {
+    const { ownerAddress } = req.params;
+    const contacts = await getContactsForUser(ownerAddress);
+    res.json(contacts);
+  } catch (error) {
+    console.error("Error in getContacts:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 });
-
-app.use(express.static("public"));
-
-app.use(express.json());

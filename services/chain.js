@@ -1,6 +1,8 @@
 const { ethers } = require("ethers");
 const { idRegistryABI, idRegistryAddress } = require("./abis/idRegistry");
 const { memoraNFTABI, memoraNFTAddress } = require("./abis/memoraNFT");
+const { memoraBTCABI, memoraBTCAddress } = require("./abis/memoraBTC");
+
 require("dotenv").config();
 
 const rootStockProvider = new ethers.JsonRpcProvider(
@@ -58,6 +60,21 @@ async function fetchMemoraNFTData() {
   }
 }
 
+async function fetchMemoraBTCData() {
+  try {
+    const memoraNFT = new ethers.Contract(
+      memoraBTCAddress,
+      memoraBTCABI,
+      memoraProvider
+    );
+
+    const allMinters = await memoraNFT.getUnclaimedEscrows();
+    return allMinters;
+  } catch (error) {
+    throw error;
+  }
+}
+
 async function triggerNFT(nftId) {
   try {
     const memoraNFT = new ethers.Contract(
@@ -78,6 +95,27 @@ async function triggerNFT(nftId) {
   }
 }
 
+async function triggerMemoraBTC(nftId) {
+  try {
+    const memoraNFT = new ethers.Contract(
+      memoraBTCAddress,
+      memoraBTCABI,
+      memoraProvider
+    );
+    const signer = new ethers.Wallet(
+      process.env.JUDGE_PRIVATE_KEY,
+      memoraProvider
+    );
+
+    const memoryJudgeSigner = memoraNFT.connect(signer);
+
+    await memoryJudgeSigner.declareTrigger(nftId);
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+
 async function fetchNFTPrompt(nftId) {
   try {
     const memoraNFT = new ethers.Contract(
@@ -97,4 +135,22 @@ async function fetchNFTPrompt(nftId) {
   }
 }
 
-module.exports = { fetchFIDs, fetchMemoraNFTData, triggerNFT, fetchNFTPrompt };
+async function fetchMemoraBTCPrompt(nftId) {
+  try {
+    const memoraNFT = new ethers.Contract(
+      memoraBTCAddress,
+      memoraBTCABI,
+      memoraProvider
+    );
+
+    const tokenInfo = await memoraNFT.escrowInfo(nftId);
+    return {
+      prompt: tokenInfo[6],
+      heir: tokenInfo[1],
+    };
+  } catch (error) {
+    throw error;
+  }
+}
+
+module.exports = { fetchFIDs, fetchMemoraNFTData, triggerNFT, fetchNFTPrompt , fetchMemoraBTCData, triggerMemoraBTC, fetchMemoraBTCPrompt};

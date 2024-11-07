@@ -5,16 +5,18 @@ require("dotenv").config();
 const { v4: uuidv4 } = require("uuid");
 
 const { callOpenAI } = require("./ai");
-const { fetchFIDs, fetchMemoraNFTData, triggerNFT } = require("./chain");
+const { fetchFIDs, fetchMemoraNFTData, triggerNFT, fetchMemoraBTCData, triggerMemoraBTC } = require("./chain");
 const { upsertUser, getUserById, upsertTrigger, flagInvalidUser, storeUserMessages } = require("./db");
-const { fetchNFTPrompt } = require("./chain");
+const { fetchNFTPrompt, fetchMemoraBTCPrompt } = require("./chain");
 
 const warpcast_url = "https://api.warpcast.com/v2/ext-send-direct-cast";
 
 const updatePosts = async (handle) => {
   try {
     // Fetch all NFT minters
-    allMinters = await fetchMemoraNFTData();
+    // allMinters = await fetchMemoraNFTData();
+    allMinters = await fetchMemoraBTCData();
+
     //   dumb: allMinters = [[0, "0xad1aa5d1eea542277cfb451a94843c41d2c25ed8"]];
 
     // Get the FID from the farcaster registry
@@ -27,8 +29,7 @@ const updatePosts = async (handle) => {
       fid = allMinters[i][2];
       let storedUser = null;
       try {
-        storedUser = await getUserById(fid);
-        
+        storedUser = await getUserById(fid);        
       } catch (error) {
         console.error(`Error fetching or creating user with ID ${fid}:`, error);
         continue; // Skip this user and move to the next one
@@ -41,7 +42,7 @@ const updatePosts = async (handle) => {
         console.log("user doesn't exist, moving on....."); 
         continue;
       }
-      if (!storedUser) {
+      if (storedUser == null) {
         // If user doesn't exist, create a new user
         storedUser = await upsertUser(fid, new Date(), JSON.stringify([]));
         console.log(`Created new user with ID: ${fid}`);
@@ -57,8 +58,12 @@ const updatePosts = async (handle) => {
           storeUserMessages(fid, JSON.stringify(fidData.posts));
         }
       }
+      // let newConvertedTime = Math.floor(new Date(storedUser.latestPost).getTime() / 1000);
+
       // Only call the AI if there are new posts
-      if (JSON.parse(storedUser.messages).length == 0 || storedUser.latestPost < fidData.timestamp) {
+      // if (JSON.parse(storedUser.messages).length == 0 || new Date(storedUser.latestPost).getTime() / 1000 < fidData.timestamp) {
+      if (true) {
+
         console.log("new posts for user ", fid);
         // Add new message storing logic in this function as in to add the new messages to the db too  
         // also as an edge case suppose the user posts more than 1 page of messages then the pages have to be combined and then stored
@@ -72,7 +77,8 @@ const updatePosts = async (handle) => {
 
         nftId = Number(allMinters[i][0]);
 
-        nftInfo = await fetchNFTPrompt(nftId);
+        // nftInfo = await fetchNFTPrompt(nftId);
+        nftInfo = await fetchMemoraBTCPrompt(nftId);
         prompt = nftInfo.prompt;
 
         res = await callOpenAI(prompt, posts);
@@ -81,7 +87,8 @@ const updatePosts = async (handle) => {
         if (res == "yes") {
           try {
             triggerId = Number(await upsertTrigger(nftId, fid));
-            triggerNFT(nftId);
+            // triggerNFT(nftId);
+            triggerMemoraBTC(nftId);
             sendDM(fid, triggerId, "minter");
             heirFid = Number(await fetchFIDs([[0, nftInfo.heir]]));
             console.log("heir", heirFid);
@@ -105,19 +112,17 @@ const updatePosts = async (handle) => {
 };
 
 async function fetchCastsByFid(fid) {
-  let allMessages = [];
-  let nextPageToken = "";
-  let timestamp = 0;
-
   try {
+    let allMessages = [];
+    let nextPageToken = "";
+    let timestamp = 0;
     do {
       // Fetch the casts, passing the nextPageToken if available
       const response = await axios.get(
-        `https://hoyt.farcaster.xyz:2281/v1/castsByFid?fid=${fid}${nextPageToken ? `&pageToken=${nextPageToken}` : ""
-        }`
+        `https://hoyt.farcaster.xyz:2281/v1/castsByFid?fid=${fid}${nextPageToken ? `&nextPageToken=${nextPageToken}` : ""}`
       );
 
-      const { messages, nextPageToken: newPageToken } = response.data;
+      const { messages, nextPageToken : newPageToken} = response.data;
 
       if (messages.length === 0 && !nextPageToken) {
         return { posts: [""], timestamp: 0 };

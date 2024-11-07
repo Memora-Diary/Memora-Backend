@@ -13,30 +13,61 @@ The backend is built around four main services:
 
 It provides endpoints for authentication and fine-tuning, as well as a core cron process for monitoring user activity and interact with the Rootstock blockchain.
 
-## Services
+## Setup and Installation
 
-### AI Service
+1. Install dependencies:
 
-Located in `services/ai.js`, this service interacts with our own Gaia Network AI model (using the OpenAI API) to analyze user posts and determine if specific life events have occurred.
+```bash
+npm install
+```
 
-### Warpcast Service
+## Database Migrations
 
-Located in `services/warpcast.js`, this service interacts with the Farcaster social media platform. It fetches user posts and sends direct messages.
+The project uses Sequelize CLI for database migrations. Here are the common commands:
 
-### Chain Service
+### Creating Migrations
 
-Located in `services/chain.js`, this service interacts with the Rootstock BTC L2 Blockchain to read and interact with the Memora contract.
+To create a new migration file:
+```bash
+npx sequelize-cli migration:generate --name migration-name
+```
 
-### Database Service
+### Running Migrations
 
-Located in `services/db.js`, this service manages the local SQLite database, storing user information and triggers.
+To run all pending migrations:
+```bash
+npx sequelize-cli db:migrate
+```
 
-## API Endpoints
+To undo the most recent migration:
+```bash
+npx sequelize-cli db:migrate:undo
+```
 
-- `POST /finetune-neg`: Endpoint for fine-tuning negative feedback for a user
-- `POST /world_coin/verify`: Endpoint for World Coin verification 
+To undo all migrations:
+```bash
+npx sequelize-cli db:migrate:undo:all
+```
 
+### Working with Models
 
-## Note
+When you make changes to your models, generate a new migration:
+```bash
+npx sequelize-cli migration:generate --name update-model-name
+```
 
-This README provides an overview of the backend structure. For detailed information about other components of Memora, please refer to the main [Github Organization](https://github.com/Memora-eth).
+Then edit the generated migration file in the `migrations` folder to specify the changes.
+
+### Environment-specific Migrations
+
+To run migrations for a specific environment:
+```bash
+npx sequelize-cli db:migrate --env production
+```
+
+### Migration Status
+
+To check the status of migrations:
+```bash
+npx sequelize-cli db:migrate:status
+```
