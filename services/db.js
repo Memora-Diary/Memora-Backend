@@ -36,9 +36,13 @@ const Trigger = sequelize.define('Trigger', {
 
 // New model for address-name mapping
 const AddressName = sequelize.define('AddressName', {
-  address: {
+  ownerAddress: {
     type: DataTypes.STRING,
     primaryKey: true,
+    allowNull: false,
+  },
+  address: {
+    type: DataTypes.STRING,
     allowNull: false,
   },
   name: {
@@ -170,19 +174,19 @@ async function storeUserMessages(userID, messages) {
 }
 
 // New function to map an address to a name
-async function mapAddressToName(address, name) {
+async function mapAddressToName(ownerAddress, address, name) {
   try {
     const [addressName, created] = await AddressName.findOrCreate({
-      where: { address },
+      where: { ownerAddress, address },
       defaults: { name },
     });
 
     if (!created) {
-      // If the address already exists, update the name
+      // If the entry already exists, update the name
       await addressName.update({ name });
     }
 
-    console.log(`Address ${address} mapped to name ${name}`);
+    console.log(`Address ${address} mapped to name ${name} for owner ${ownerAddress}`);
     return addressName;
   } catch (error) {
     console.error('Error mapping address to name:', error);
@@ -190,18 +194,19 @@ async function mapAddressToName(address, name) {
   }
 }
 
+
 // New function to fetch an address for a given name
-async function getAddressForName(name) {
+async function getAddressForName(ownerAddress, name) {
   try {
     const addressName = await AddressName.findOne({
-      where: { name },
+      where: { ownerAddress, name },
     });
 
     if (addressName) {
-      console.log(`Found address ${addressName.address} for name ${name}`);
+      console.log(`Found address ${addressName.address} for name ${name} (owner: ${ownerAddress})`);
       return addressName.address;
     } else {
-      console.log(`No address found for name ${name}`);
+      console.log(`No address found for name ${name} (owner: ${ownerAddress})`);
       return null;
     }
   } catch (error) {

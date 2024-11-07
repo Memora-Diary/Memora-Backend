@@ -6,7 +6,7 @@ const cron = require("node-cron");
 const cors = require("cors");
 const { fetchNFTPrompt } = require("./services/chain");
 const { giveNegativeFeedback } = require("./services/ai");
-const { createTables, mapAddressToName, getAddressForName } = require("./services/db");
+const { createTables, mapAddressToName, getAddressForName, getContactsForUser } = require("./services/db");
 const verifyToken = require("./middleware/authMiddleware");
 
 app.use(cors());
@@ -18,14 +18,14 @@ app.get("/", async (req, res) => {
   res.send("Hello World!");
 });
 
-app.get("/getAddressForName/:name", verifyToken, async (req, res) => {
+app.get("/getAddressForName/:ownerAddress/:name", verifyToken, async (req, res) => {
   try {
-    const { name } = req.params;
-    const address = await getAddressForName(name);
+    const { ownerAddress, name } = req.params;
+    const address = await getAddressForName(ownerAddress, name);
     if (address) {
-      res.json({ name, address });
+      res.json({ ownerAddress, name, address });
     } else {
-      res.status(404).json({ message: "Name not found" });
+      res.status(404).json({ message: "Name not found for this owner" });
     }
   } catch (error) {
     console.error("Error in getAddressForName:", error);
@@ -35,11 +35,11 @@ app.get("/getAddressForName/:name", verifyToken, async (req, res) => {
 
 app.post("/mapNameToAddress", verifyToken, async (req, res) => {
   try {
-    const { name, address } = req.body;
-    if (!name || !address) {
-      return res.status(400).json({ message: "Name and address are required" });
+    const { ownerAddress, name, address } = req.body;
+    if (!ownerAddress || !name || !address) {
+      return res.status(400).json({ message: "Owner address, name, and address are required" });
     }
-    await mapAddressToName(address, name);
+    await mapAddressToName(ownerAddress, address, name);
     res.json({ message: "Name mapped to address successfully" });
   } catch (error) {
     console.error("Error in mapNameToAddress:", error);
@@ -104,4 +104,15 @@ createTables().then(() => {
 }).catch(error => {
   console.error("Failed to create tables:", error);
   process.exit(1);
+});
+
+app.get("/getContacts/:ownerAddress", verifyToken, async (req, res) => {
+  try {
+    const { ownerAddress } = req.params;
+    const contacts = await getContactsForUser(ownerAddress);
+    res.json(contacts);
+  } catch (error) {
+    console.error("Error in getContacts:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
 });
