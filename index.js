@@ -8,6 +8,9 @@ const { fetchNFTPrompt } = require("./services/chain");
 const { giveNegativeFeedback } = require("./services/ai");
 const { createTables, mapAddressToName, getAddressForName, getContactsForUser } = require("./services/db");
 const verifyToken = require("./middleware/authMiddleware");
+const TelegramDiaryBot = require('./services/telegramBot');
+const { initializeDatabase } = require('./services/initDb');
+
 
 app.use(cors());
 app.use(express.json());
@@ -84,27 +87,83 @@ app.use((err, req, res, next) => {
   res.status(500).send("Something broke!");
 });
 
-// Create tables before starting the server
-createTables().then(() => {
-  app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
-  });
+let telegramBot = null;
+let server = null;
 
-  // Start the cron job after creating tables
-  cron.schedule("*/2 * * * *", async () => {
-    console.log("Starting a new update round");
+// Initialize database and start server
+async function startServer() {
+  try {
+    // Initialize database
+    await initializeDatabase();
+    
+    // Initialize Telegram bot only once
+    if (!telegramBot) {
+      telegramBot = new TelegramDiaryBot();
+      console.log('Telegram bot initialized successfully');
 
-    try {
-      await updatePosts({});
-      console.log("Finished round, sleeping...");
-    } catch (error) {
-      console.error("An error occurred during the update:", error);
+      // Schedule daily questions
+      cron.schedule('* * * * *', async () => {
+        console.log('Sending daily diary questions');
+        try {
+          await telegramBot.sendDailyQuestions();
+        } catch (error) {
+          console.error('Error sending daily questions:', error);
+        }
+      });
     }
-  });
-}).catch(error => {
-  console.error("Failed to create tables:", error);
+
+    // Start the server only if it's not already running
+    if (!server) {
+      server = app.listen(port, () => {
+        console.log(`Server is running on http://localhost:${port}`);
+      });
+
+      // Handle server errors
+      server.on('error', (error) => {
+        if (error.code === 'EADDRINUSE') {
+          console.log(`Port ${port} is busy, retrying in 5 seconds...`);
+          setTimeout(() => {
+            server.close();
+            server.listen(port);
+          }, 5000);
+        } else {
+          console.error('Server error:', error);
+        }
+      });
+    }
+  } catch (error) {
+    console.error("Failed to start server:", error);
+    process.exit(1);
+  }
+}
+
+// Graceful shutdown
+async function shutdown() {
+  console.log('Shutting down gracefully...');
+  if (telegramBot) {
+    await telegramBot.stop();
+  }
+  if (server) {
+    server.close(() => {
+      console.log('Server closed');
+      process.exit(0);
+    });
+  } else {
+    process.exit(0);
+  }
+}
+
+// Handle shutdown signals
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
+
+// Start the server
+startServer().catch(error => {
+  console.error("Failed to start application:", error);
   process.exit(1);
 });
+
+// Remove any duplicate server initialization code
 
 app.get("/getContacts/:ownerAddress", verifyToken, async (req, res) => {
   try {
@@ -115,4 +174,91 @@ app.get("/getContacts/:ownerAddress", verifyToken, async (req, res) => {
     console.error("Error in getContacts:", error);
     res.status(500).json({ message: "Internal server error" });
   }
+});
+
+
+// Telegram bot routes
+app.get("/telegram/status", async (req, res) => {
+  try {
+    if (!telegramBot) {
+      return res.status(503).json({ status: 'bot not initialized' });
+    }
+    const status = await telegramBot.getStatus();
+    const subscriberCount = await telegramBot.getSubscriberCount();
+    res.json({ ...status, subscriberCount });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/telegram/update-questions", verifyToken, async (req, res) => {
+  try {
+    const { questions } = req.body;
+    if (!telegramBot) {
+      return res.status(503).json({ error: 'Bot not initialized' });
+    }
+    telegramBot.updateDailyQuestions(questions);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
+// Get all active minters
+app.get("/telegram/minters", verifyToken, async (req, res) => {
+    try {
+        const minters = await telegramBot.getActiveMinters();
+        res.json({ minters });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Manually add a minter
+app.post("/telegram/minters", verifyToken, async (req, res) => {
+    try {
+        const { minterAddress, nftId } = req.body;
+        const user = await telegramBot.addMinterToQuestions(minterAddress, nftId);
+        res.json({ success: true, user });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Remove a minter
+app.delete("/telegram/minters/:address", verifyToken, async (req, res) => {
+    try {
+        const { address } = req.params;
+        await telegramBot.removeMinterFromQuestions(address);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Add this endpoint to your Express app
+app.post("/telegram/link-minter", verifyToken, async (req, res) => {
+    try {
+        const { minterAddress, telegramChatId } = req.body;
+        if (!minterAddress || !telegramChatId) {
+            return res.status(400).json({ 
+                error: 'Minter address and Telegram chat ID are required' 
+            });
+        }
+
+        const user = await telegramBot.linkMinterToTelegram(
+            minterAddress, 
+            telegramChatId
+        );
+        
+        res.json({ 
+            success: true, 
+            user 
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            error: error.message 
+        });
+    }
 });

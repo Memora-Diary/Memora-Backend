@@ -12,7 +12,8 @@ const optimismProvider = new ethers.JsonRpcProvider(
   "https://mainnet.optimism.io"
 );
 const sepoliaProvider = new ethers.JsonRpcProvider("https://rpc.sepolia.org");
-const memoraProvider = rootStockProvider;
+const polygonAmoyProvider = new ethers.JsonRpcProvider("https://rpc-amoy.polygon.technology/");
+const memoraProvider = polygonAmoyProvider;
 
 async function fetchFIDs(allMinters) {
   try {
@@ -53,7 +54,8 @@ async function fetchMemoraNFTData() {
       memoraProvider
     );
 
-    const allMinters = await memoraNFT.getAllMinters();
+    const allMinters = await memoraNFT.getUnclaimedNFTs();
+    console.log({allMinters})
     return allMinters;
   } catch (error) {
     throw error;
