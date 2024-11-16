@@ -571,21 +571,26 @@ class TelegramDiaryBot {
             }
 
             console.log('Attempting to store note with Nillion...');
-            const result = await nillionService.storeNote(chatId, title, content);
-            console.log('Nillion store result:', result);
+            const { storeId, analysis } = await nillionService.storeNote(chatId, title, content);
+            console.log('Nillion store result:', { storeId, analysis });
             
-            await this.bot.sendMessage(chatId, 
-                `✅ Note "${title}" has been securely saved using Nillion! 🔒\n` +
-                `Your note is encrypted and stored on the Nillion Network.\n` +
-                `Use /get_note "${title}" to retrieve it later.`
-            );
+            let message = `✅ Note "${title}" has been securely saved using Nillion! 🔒\n` +
+                         `Your note is encrypted and stored on the Nillion Network.\n` +
+                         `Use /get_note "${title}" to retrieve it later.`;
+
+            if (analysis) {
+                message += `\n\n📊 Analysis:\n${analysis}`;
+            }
+            
+            await this.bot.sendMessage(chatId, message);
             console.log('Save note operation completed successfully');
 
         } catch (error) {
             console.error('Error in handleSaveNote:', error);
             console.error('Stack trace:', error.stack);
             await this.bot.sendMessage(chatId, 
-                '❌ Failed to save note. Please try again later.'
+                '❌ Failed to save note. Please try again later.\n' +
+                'Error: ' + error.message
             );
         }
     }
@@ -627,32 +632,20 @@ class TelegramDiaryBot {
             }
 
             console.log('Retrieving note content...');
-            const noteResponse = await nillionService.retrieveNote(chatId, noteInfo.storeId, title);
-            console.log('Raw note response:', noteResponse);
-            
-            if (!noteResponse || !noteResponse.secret) {
-                console.log('Invalid note response:', noteResponse);
-                return this.bot.sendMessage(chatId, '❌ Could not retrieve the note.');
-            }
-
-            let noteData;
-            try {
-                noteData = JSON.parse(noteResponse.secret);
-                console.log('Parsed note data:', noteData);
-            } catch (e) {
-                console.error('JSON parse error:', e);
-                console.error('Failed to parse:', noteResponse.secret);
-                return this.bot.sendMessage(chatId, '❌ Error reading note data.');
-            }
+            const noteData = await nillionService.retrieveNote(chatId, noteInfo.storeId, title);
+            console.log('Retrieved note data:', noteData);
 
             const formattedDate = new Date(noteData.timestamp).toLocaleString();
-            console.log('Sending formatted note to user');
-            await this.bot.sendMessage(chatId, 
-                `📝 Note: ${title}\n` +
-                `Securely retrieved from Nillion Network 🔒\n\n` +
-                `${noteData.content}\n\n` +
-                `Created: ${formattedDate}`
-            );
+            let message = `📝 Note: ${title}\n` +
+                         `Securely retrieved from Nillion Network 🔒\n\n` +
+                         `${noteData.content}\n\n` +
+                         `Created: ${formattedDate}`;
+
+            if (noteData.analysis) {
+                message += `\n\n📊 Analysis:\n${noteData.analysis}`;
+            }
+
+            await this.bot.sendMessage(chatId, message);
             console.log('Get note operation completed successfully');
 
         } catch (error) {

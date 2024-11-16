@@ -2,11 +2,47 @@ const API_BASE = 'https://nillion-storage-apis-v0.onrender.com';
 
 class NillionService {
     constructor() {
-        if (!process.env.NILLION_APP_ID) {
-            throw new Error('NILLION_APP_ID is not set in environment variables');
+        this.appId = null;
+        this.initializeApp();
+    }
+
+    async initializeApp() {
+        try {
+            // Try to get app ID from env
+            if (process.env.NILLION_APP_ID) {
+                this.appId = process.env.NILLION_APP_ID;
+                console.log('Using existing Nillion APP_ID:', this.appId);
+                return;
+            }
+
+            // If no app ID exists, register a new one
+            console.log('No APP_ID found, registering new app with Nillion...');
+            const response = await fetch(`${API_BASE}/api/apps/register`, {
+                method: 'POST'
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to register app: ${response.status}`);
+            }
+
+            const data = await response.json();
+            this.appId = data.app_id;
+            console.log('Successfully registered new Nillion APP_ID:', this.appId);
+
+            // You might want to save this app_id for future use
+            // For now, just log it - in production you should save it to env or database
+            console.log('Please save this APP_ID in your environment variables as NILLION_APP_ID');
+        } catch (error) {
+            console.error('Error initializing Nillion app:', error);
+            throw error;
         }
-        this.appId = process.env.NILLION_APP_ID;
-        console.log('Nillion Service initialized with APP_ID:', this.appId);
+    }
+
+    async ensureInitialized() {
+        if (!this.appId) {
+            await this.initializeApp();
+        }
+        return this.appId;
     }
 
     async getUserId(userSeed) {
@@ -35,71 +71,46 @@ class NillionService {
 
     async storeNote(userId, title, content) {
         try {
+            await this.ensureInitialized();
             const userSeed = `telegram_${userId}`;
             console.log(`Storing note for user ${userId}, title: ${title}`);
             
             // Analyze content before storing
-            try {
-                // Make sure content is properly formatted
-                const analysisResponse = await fetch('http://localhost:3003/webhook/analysis', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        transcript_segments: [
-                            {
-                                text: content,
-                                timestamp: Date.now()
-                            }
-                        ]
-                    })
-                });
-                
-                if (!analysisResponse.ok) {
-                    const errorData = await analysisResponse.json();
-                    console.error('Analysis failed:', errorData);
-                    throw new Error(`Analysis failed: ${JSON.stringify(errorData)}`);
-                }
+            const analysisResult = await this.analyzeContent(content);
+            
+            // Store note with analysis
+            const noteData = {
+                content,
+                timestamp: Date.now(),
+                analysis: analysisResult.analysis
+            };
 
-                const analysisResult = await analysisResponse.json();
-                console.log('Content analysis:', analysisResult);
+            const response = await fetch(`${API_BASE}/api/apps/${this.appId}/secrets`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    secret: {
+                        nillion_seed: userSeed,
+                        secret_value: JSON.stringify(noteData),
+                        secret_name: `note_${title}`,
+                    },
+                    permissions: {
+                        retrieve: [], // Only the user can retrieve
+                        update: [],   // Only the user can update
+                        delete: [],   // Only the user can delete
+                        compute: {},  // No compute permissions
+                    },
+                }),
+            });
 
-                // Store note with analysis
-                const noteData = {
-                    content,
-                    timestamp: Date.now(),
-                    analysis: analysisResult.analysis
-                };
-
-                const response = await fetch(`${API_BASE}/api/apps/${this.appId}/secrets`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        secret: {
-                            nillion_seed: userSeed,
-                            secret_value: JSON.stringify(noteData),
-                            secret_name: `note_${title}`,
-                        },
-                        permissions: {
-                            retrieve: [],
-                            update: [],
-                            delete: [],
-                            compute: {},
-                        },
-                    }),
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(`API returned ${response.status}: ${JSON.stringify(errorData)}`);
-                }
-
-                const result = await response.json();
-                console.log('Store result:', result);
-                return { result, analysis: analysisResult.analysis };
-            } catch (error) {
-                console.error('Error analyzing or storing note:', error);
-                throw error;
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`API returned ${response.status}: ${JSON.stringify(errorData)}`);
             }
+
+            const result = await response.json();
+            console.log('Store result:', result);
+            return { storeId: result.store_id, analysis: analysisResult.analysis };
         } catch (error) {
             console.error('Error in storeNote:', error);
             throw error;
@@ -108,6 +119,7 @@ class NillionService {
 
     async retrieveNote(userId, storeId, title) {
         try {
+            await this.ensureInitialized();
             const userSeed = `telegram_${userId}`;
             console.log(`Retrieving note. StoreID: ${storeId}, Title: ${title}`);
 
@@ -115,8 +127,6 @@ class NillionService {
             url.searchParams.append('retrieve_as_nillion_user_seed', userSeed);
             url.searchParams.append('secret_name', `note_${title}`);
 
-            console.log('Request URL:', url.toString());
-            
             const response = await fetch(url);
             
             if (!response.ok) {
@@ -125,8 +135,7 @@ class NillionService {
             }
 
             const data = await response.json();
-            console.log('Retrieved note data:', data);
-            return data;
+            return JSON.parse(data.secret_value);
         } catch (error) {
             console.error('Error retrieving note:', error);
             throw error;
@@ -135,6 +144,7 @@ class NillionService {
 
     async listNotes(userId) {
         try {
+            await this.ensureInitialized();
             console.log(`Listing notes for app ID: ${this.appId}`);
             const response = await fetch(`${API_BASE}/api/apps/${this.appId}/store_ids`);
             
@@ -144,26 +154,48 @@ class NillionService {
             }
 
             const data = await response.json();
-            console.log('Store IDs response:', data);
-
+            
             if (!data.store_ids) {
-                console.log('No store IDs found');
                 return [];
             }
 
-            // Filter only notes
-            const notes = data.store_ids
+            return data.store_ids
                 .filter(item => item.secret_name.startsWith('note_'))
                 .map(item => ({
                     title: item.secret_name.replace('note_', ''),
                     storeId: item.store_id,
                     secretName: item.secret_name
                 }));
-
-            console.log('Filtered notes:', notes);
-            return notes;
         } catch (error) {
             console.error('Error listing notes:', error);
+            throw error;
+        }
+    }
+
+    // Helper method to analyze content
+    async analyzeContent(content) {
+        try {
+            const analysisResponse = await fetch('http://localhost:3003/webhook/analysis', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    transcript_segments: [
+                        {
+                            text: content,
+                            timestamp: Date.now()
+                        }
+                    ]
+                })
+            });
+            
+            if (!analysisResponse.ok) {
+                const errorData = await analysisResponse.json();
+                throw new Error(`Analysis failed: ${JSON.stringify(errorData)}`);
+            }
+
+            return await analysisResponse.json();
+        } catch (error) {
+            console.error('Error analyzing content:', error);
             throw error;
         }
     }
