@@ -1,73 +1,129 @@
-# Memora Backend
+# 🌟 Memora Backend
 
-This repository contains the backend code for the Memora project, our blockchain-powered platform to help you manage and preserve your online presence for future generations.
+Memora is a blockchain-powered platform that helps users preserve and manage their digital legacy through smart contracts, AI-driven analysis, and secure data storage.
 
-## Overview
+## 🚀 Core Features
 
-The backend is built around four main services:
+### 1. Smart Contract Integration
+- **NFT-Based Triggers**: Create and manage conditional NFT transfers
+- **BTC Escrow System**: Secure Bitcoin transactions with conditional releases
+- **Multi-Chain Support**: Integration with Rootstock, Optimism, Sepolia, and Polygon Amoy
 
-1. AI Service
-2. Warpcast Service
-3. Chain Service
-4. Database Service
+### 2. AI Services
+- **Intelligent Analysis**: AI-powered analysis of user content and conditions
+- **Personalized Diary Questions**: Dynamic question generation based on user goals
+- **Sentiment Analysis**: Advanced content evaluation for trigger conditions
 
-It provides endpoints for authentication and fine-tuning, as well as a core cron process for monitoring user activity and interact with the Rootstock blockchain.
+### 3. Secure Communication
+- **Push Protocol Integration**: Real-time notifications for important events
+- **Telegram Bot**: Interactive diary entries and user engagement
+- **Nillion Network**: Encrypted and secure note storage
 
-## Setup and Installation
+### 4. Data Management
+- **Database Services**: Robust data persistence with Sequelize
+- **User Management**: Comprehensive user tracking and preferences
+- **Activity Monitoring**: Automated cron processes for user engagement
 
-1. Install dependencies:
+## 🛠 Technical Stack
 
+- **Backend**: Node.js with Express
+- **Database**: Sequelize ORM
+- **Blockchain**: Ethers.js for Web3 integration
+- **AI**: OpenAI integration
+- **Security**: Nillion Network for encrypted storage
+- **Messaging**: Push Protocol & Telegram Bot API
+
+## 📋 Setup Instructions
+
+1. Clone the repository:
+```bash
+git clone https://github.com/your-repo/memora-backend.git
+```
+
+2. Install dependencies:
 ```bash
 npm install
 ```
 
-## Database Migrations
-
-The project uses Sequelize CLI for database migrations. Here are the common commands:
-
-### Creating Migrations
-
-To create a new migration file:
+3. Configure environment variables:
 ```bash
-npx sequelize-cli migration:generate --name migration-name
+cp .env.example .env
+# Edit .env with your credentials
 ```
 
-### Running Migrations
-
-To run all pending migrations:
+4. Initialize database:
 ```bash
 npx sequelize-cli db:migrate
 ```
 
-To undo the most recent migration:
+5. Start the server:
 ```bash
-npx sequelize-cli db:migrate:undo
+npm start
 ```
 
-To undo all migrations:
-```bash
-npx sequelize-cli db:migrate:undo:all
+## 🔧 Configuration
+
+### Environment Variables
+```env
+TELEGRAM_BOT_TOKEN=your_telegram_token
+JUDGE_PRIVATE_KEY=your_private_key
+OPENAI_API_KEY=your_openai_key
+NILLION_APP_ID=your_nillion_id
+PUSH_CHANNEL_ADDRESS=your_push_address
 ```
 
-### Working with Models
-
-When you make changes to your models, generate a new migration:
-```bash
-npx sequelize-cli migration:generate --name update-model-name
+### Database Configuration
+```javascript
+// config/config.js
+module.exports = {
+  development: {
+    // Your development database config
+  },
+  production: {
+    // Your production database config
+  }
+}
 ```
 
-Then edit the generated migration file in the `migrations` folder to specify the changes.
+## 📚 API Documentation
 
-### Environment-specific Migrations
+### NFT Management
+- `POST /finetune-neg`: Fine-tune negative feedback for NFT conditions
+- `GET /getContacts/:ownerAddress`: Retrieve user contacts
 
-To run migrations for a specific environment:
-```bash
-npx sequelize-cli db:migrate --env production
-```
+### Telegram Bot Endpoints
+- `GET /telegram/status`: Check bot status
+- `POST /telegram/update-questions`: Update daily questions
+- `GET /telegram/minters`: List active minters
+- `POST /telegram/minters`: Add new minter
+- `DELETE /telegram/minters/:address`: Remove minter
 
-### Migration Status
+### Push Notifications
+- `POST /webhook/push`: Handle push notification events
+- `GET /webhook/push/test`: Test push notification endpoint
 
-To check the status of migrations:
-```bash
-npx sequelize-cli db:migrate:status
-```
+### AI Analysis
+- `POST /webhook/analysis`: Process content analysis
+- `GET /webhook/analysis/test`: Test analysis endpoint
+
+## 🔐 Security Features
+
+- Encrypted note storage via Nillion Network
+- Secure blockchain transactions
+- Protected API endpoints
+- Environment-based configurations
+- Error handling and monitoring
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+
