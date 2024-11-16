@@ -1,4 +1,5 @@
 const OpenAI = require("openai");
+const pushProtocolService = require('./pushProtocol');
 
 const client = new OpenAI({
   baseURL: "https://llama.us.gaianet.network/v1",
@@ -112,7 +113,7 @@ async function generateDiaryQuestions({ nftPrompt, previousResponses }) {
 }
 
 // New function to analyze diary entries and provide insights
-async function analyzeDiaryEntries(entries) {
+async function analyzeDiaryEntries(entries, userAddress) {
   try {
     console.log("Analyzing diary entries");
     const response = await client.chat.completions.create({
@@ -120,29 +121,86 @@ async function analyzeDiaryEntries(entries) {
       messages: [
         {
           role: "system",
-          content: `You are an insightful AI diary analyst. Your role is to analyze a user's diary entries and provide meaningful insights about their emotional patterns, recurring themes, and potential areas for personal growth.
-            Be empathetic and constructive in your analysis. Focus on patterns and trends that might be helpful for the user to be aware of.`,
+          content: `You are an empathetic and encouraging AI mentor. Your role is to:
+            1. Analyze diary entries with deep emotional intelligence
+            2. Identify meaningful patterns and progress
+            3. Create a warm, personalized message that:
+               - Celebrates their progress and effort
+               - Acknowledges their challenges with empathy
+               - Offers gentle encouragement
+               - Uses a warm, friendly tone with appropriate emojis
+               - Keeps the message concise but impactful (max 2-3 sentences)
+            4. Focus on making the user feel seen, understood, and supported`,
         },
         {
           role: "user",
-          content: `Analyze these diary entries and provide insights: ${JSON.stringify(entries)}
-            Consider emotional patterns, recurring themes, and potential areas for growth.`,
+          content: `Analyze these diary entries and create an uplifting message: ${JSON.stringify(entries)}
+            Make it personal, warm, and encouraging. Include relevant emojis.`,
         },
       ],
-      temperature: 0.7,
+      temperature: 0.8,
+      max_tokens: 5000,
+    });
+
+    const insights = response.choices[0].message.content;
+    
+    // Send Push notification with AI-generated insights
+    if (userAddress) {
+      await pushProtocolService.sendDiaryInsightNotification(userAddress, insights);
+    }
+
+    return insights;
+  } catch (error) {
+    console.error("Error analyzing diary entries:", error);
+    // Provide a warm fallback message
+    const fallbackMessage = "✨ Thank you for sharing your journey with us. Your dedication to self-reflection is truly inspiring! 🌟";
+    if (userAddress) {
+      await pushProtocolService.sendDiaryInsightNotification(userAddress, fallbackMessage);
+    }
+    return fallbackMessage;
+  }
+}
+
+// New function to generate personalized achievement messages
+async function generateAchievementMessage(prompt, nftId) {
+  try {
+    const response = await client.chat.completions.create({
+      model: "llama",
+      messages: [
+        {
+          role: "system",
+          content: `You are an enthusiastic and empathetic AI celebration creator. Create a heartfelt, personalized celebration message for someone who just achieved their goal. The message should:
+            - Start with engaging emojis
+            - Be warm and personal
+            - Acknowledge their specific achievement
+            - Include words of encouragement for the future
+            - End with uplifting emojis
+            - Be concise but impactful (2-3 sentences max)
+            - Make them feel proud and accomplished`,
+        },
+        {
+          role: "user",
+          content: `Create a celebration message for NFT #${nftId} with condition: "${prompt}"
+            Make it uplifting and personal.`,
+        },
+      ],
+      temperature: 0.9,
       max_tokens: 5000,
     });
 
     return response.choices[0].message.content;
   } catch (error) {
-    console.error("Error analyzing diary entries:", error);
-    return "Unable to analyze diary entries at this time.";
+    console.error("Error generating achievement message:", error);
+    return `🌟 Incredible achievement! Your journey to fulfill "${prompt}" has reached its beautiful conclusion. We're so proud of your dedication! ✨`;
   }
 }
 
+// Export client so it can be used in chain.js
 module.exports = { 
+  client,
   callOpenAI, 
   giveNegativeFeedback, 
   generateDiaryQuestions, 
-  analyzeDiaryEntries 
+  analyzeDiaryEntries,
+  generateAchievementMessage 
 };

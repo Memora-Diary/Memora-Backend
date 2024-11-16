@@ -1,9 +1,10 @@
 const TelegramBot = require('node-telegram-bot-api');
 const { User, DiaryEntry } = require('../models');
 const { Op } = require('sequelize');
-const { fetchMemoraNFTData, fetchNFTPrompt, triggerNFT } = require('./chain');
-const { generateDiaryQuestions, callOpenAI } = require('./ai');
+const { fetchMemoraNFTData, fetchNFTPrompt, triggerNFT, triggerMemoraBTC } = require('./chain');
+const { generateDiaryQuestions, callOpenAI, giveNegativeFeedback } = require('./ai');
 const fetch = require('node-fetch');
+const { sendNFTTriggerNotification, sendBTCTriggerNotification, } = require('./pushProtocol');
 
 class TelegramDiaryBot {
     constructor() {
@@ -323,7 +324,7 @@ class TelegramDiaryBot {
                     await this.bot.sendMessage(
                         chatId,
                         "🎉 Based on your diary entries, your condition has been met! The NFT has been triggered."
-                    );
+                    );                    
                 }
             }
 
@@ -342,6 +343,7 @@ class TelegramDiaryBot {
 
     async sendDailyQuestions() {
         try {
+            
             const allMinters = await fetchMemoraNFTData();
             console.log('Fetched minters from blockchain:', allMinters.length);
 
