@@ -13,7 +13,19 @@ class TelegramDiaryBot {
     constructor() {
         this.bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true });
         this.userStates = new Map();
-        this.defaultConfig = {
+        this.commands = [
+            { command: 'start', description: '🚀 Initialize the bot and get started' },
+            { command: 'subscribe', description: '📝 Subscribe to daily diary questions' },
+            { command: 'unsubscribe', description: '🚫 Stop receiving daily questions' },
+            { command: 'history', description: '📚 View your past diary entries' },
+            { command: 'save_note', description: '💾 Save a private encrypted note' },
+            { command: 'get_note', description: '🔍 Retrieve a saved note' },
+            { command: 'list_notes', description: '📋 List all your saved notes' },
+            { command: 'help', description: '❓ Get detailed help and instructions' },
+            { command: 'status', description: '📊 Check your subscription status' }
+        ];
+        
+        this.config = {
             questions: {
                 greeting: "Hi there! Time for your daily diary entry. Ready to begin?",
                 farewell: "Thank you for sharing! Your responses have been saved. See you tomorrow! 🌟",
@@ -29,7 +41,6 @@ class TelegramDiaryBot {
             }
         };
         
-        this.config = { ...this.defaultConfig };
         this.initializeBot();
         this.lastUpdateId = 0;
     }
@@ -54,11 +65,46 @@ class TelegramDiaryBot {
         const username = msg.from.username;
         
         try {
+            // Set bot commands for this user
+            await this.bot.setMyCommands(this.commands);
+            
+            // Store chat ID mapping
             await this.storeChatIdMapping(username, chatId);
-            await this.bot.sendMessage(chatId, 
-                this.config.commands.start + "\n\n" +
-                "🔒 Your notes are secured and encrypted using Nillion Network technology!"
-            );
+            
+            // Create welcome message with all commands
+            const welcomeMessage = `
+🌟 Welcome to Heirary Bot! 🌟
+
+I'm your personal legacy guardian, here to help you manage your digital inheritance and memories.
+
+Available Commands:
+${this.commands.map(cmd => `/${cmd.command} - ${cmd.description}`).join('\n')}
+
+📝 Quick Start:
+1. Use /subscribe to start receiving daily questions
+2. Use /save_note to store encrypted memories
+3. Use /history to view your diary entries
+
+🔒 Security Note:
+• All notes are encrypted using Nillion Network
+• Your data is private and secure
+• Only you can access your entries
+
+Need help? Use /help anytime!
+`;
+
+            await this.bot.sendMessage(chatId, welcomeMessage, {
+                parse_mode: 'HTML',
+                reply_markup: {
+                    keyboard: [
+                        ['/subscribe', '/history'],
+                        ['/save_note', '/list_notes'],
+                        ['/help', '/status']
+                    ],
+                    resize_keyboard: true
+                }
+            });
+
         } catch (error) {
             console.error('Error in handleStart:', error);
             await this.bot.sendMessage(chatId, "An error occurred. Please try again later.");
@@ -694,6 +740,85 @@ class TelegramDiaryBot {
             await this.bot.sendMessage(chatId, 
                 '❌ Failed to list notes. Please try again later.'
             );
+        }
+    }
+
+    async handleHelp(msg) {
+        const chatId = msg.chat.id;
+        
+        const helpMessage = `
+📚 Heirary Bot Help Guide 📚
+
+🔹 Basic Commands:
+/start - Initialize the bot
+/subscribe - Get daily diary questions
+/unsubscribe - Stop daily questions
+/status - Check subscription status
+
+🔐 Secure Notes:
+/save_note "title" content - Save an encrypted note
+Example: /save_note "My Wishes" I want to pass my BTC to Alice
+/get_note "title" - Retrieve a note
+/list_notes - See all your notes
+
+📝 Diary Features:
+/history - View recent diary entries
+• Responds to daily questions
+• AI analysis of your entries
+• Progress tracking
+
+🔒 Security Features:
+• End-to-end encryption
+• Nillion Network storage
+• Private diary entries
+• Secure note management
+
+💡 Tips:
+• Use quotes for note titles
+• Answer questions honestly
+• Check /status regularly
+• Keep your chat private
+
+Need more help? Join our community:
+🌐 https://discord.gg/heirary
+`;
+
+        await this.bot.sendMessage(chatId, helpMessage, {
+            parse_mode: 'HTML',
+            disable_web_page_preview: true
+        });
+    }
+
+    async handleStatus(msg) {
+        const chatId = msg.chat.id;
+        
+        try {
+            const user = await User.findOne({ 
+                where: { telegram_id: chatId.toString() } 
+            });
+
+            if (!user) {
+                return await this.bot.sendMessage(chatId, 
+                    "❌ You're not registered yet. Please use /start first!");
+            }
+
+            const statusMessage = `
+📊 Your Heirary Status:
+
+Subscription: ${user.is_subscribed ? '✅ Active' : '❌ Inactive'}
+Last Activity: ${user.last_interaction ? new Date(user.last_interaction).toLocaleString() : 'No activity yet'}
+Username: @${user.username}
+
+🔹 Quick Actions:
+• ${user.is_subscribed ? '/unsubscribe to pause' : '/subscribe to start'} daily questions
+• /history to view your entries
+• /list_notes to see your saved notes
+`;
+
+            await this.bot.sendMessage(chatId, statusMessage);
+        } catch (error) {
+            console.error('Error in handleStatus:', error);
+            await this.bot.sendMessage(chatId, "An error occurred while fetching your status.");
         }
     }
 }

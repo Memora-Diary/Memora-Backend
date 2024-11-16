@@ -1,129 +1,129 @@
-# 🌟 Memora Backend
+<div align="center">
+  <img src="https://i.imgur.com/XYZ123.png" alt="Heirary Logo" width="300"/>
 
-Memora is a blockchain-powered platform that helps users preserve and manage their digital legacy through smart contracts, AI-driven analysis, and secure data storage.
+  # Heirary: Inheritance Reimagined
+  
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+  [![Discord](https://img.shields.io/discord/1234567890?color=7289DA&label=Discord&logo=discord)](https://discord.gg/heirary)
+  [![Twitter Follow](https://img.shields.io/twitter/follow/HeiraryProtocol?style=social)](https://twitter.com/HeiraryProtocol)
 
-## 🚀 Core Features
+  *Where Legacy Meets Technology*
+</div>
 
-### 1. Smart Contract Integration
-- **NFT-Based Triggers**: Create and manage conditional NFT transfers
-- **BTC Escrow System**: Secure Bitcoin transactions with conditional releases
-- **Multi-Chain Support**: Integration with Rootstock, Optimism, Sepolia, and Polygon Amoy
+---
 
-### 2. AI Services
-- **Intelligent Analysis**: AI-powered analysis of user content and conditions
-- **Personalized Diary Questions**: Dynamic question generation based on user goals
-- **Sentiment Analysis**: Advanced content evaluation for trigger conditions
+## 🌟 What is Heirary?
 
-### 3. Secure Communication
-- **Push Protocol Integration**: Real-time notifications for important events
-- **Telegram Bot**: Interactive diary entries and user engagement
-- **Nillion Network**: Encrypted and secure note storage
+Heirary is a groundbreaking blockchain platform that revolutionizes how we think about inheritance and digital legacy. By combining smart contracts with AI-powered verification, we create seamless, automated inheritance solutions for the digital age.
 
-### 4. Data Management
-- **Database Services**: Robust data persistence with Sequelize
-- **User Management**: Comprehensive user tracking and preferences
-- **Activity Monitoring**: Automated cron processes for user engagement
+<div align="center">
+  <img src="https://i.imgur.com/ABC456.png" alt="Heirary Platform Overview" width="800"/>
+</div>
 
-## 🛠 Technical Stack
+### 🎯 The Heirary Promise
 
-- **Backend**: Node.js with Express
-- **Database**: Sequelize ORM
-- **Blockchain**: Ethers.js for Web3 integration
-- **AI**: OpenAI integration
-- **Security**: Nillion Network for encrypted storage
-- **Messaging**: Push Protocol & Telegram Bot API
+> "Your legacy is more than just assets - it's about ensuring your wishes are honored and your story continues."
 
-## 📋 Setup Instructions
+We transform traditional inheritance through:
+- **Smart Inheritance NFTs**: Automated asset transfers triggered by life events
+- **Secure BTC Vaults**: Conditional Bitcoin transfers with AI verification
+- **Digital Time Capsules**: Encrypted messages and memories released at the right moment
+- **Legacy Guardian AI**: Intelligent monitoring of inheritance conditions
 
-1. Clone the repository:
-```bash
-git clone https://github.com/your-repo/memora-backend.git
-```
+<div align="center">
+  <img src="https://i.imgur.com/DEF789.png" alt="Heirary Features" width="600"/>
+</div>
 
-2. Install dependencies:
-```bash
-npm install
-```
+## 🔮 Technology Stack
 
-3. Configure environment variables:
-```bash
-cp .env.example .env
-# Edit .env with your credentials
-```
-
-4. Initialize database:
-```bash
-npx sequelize-cli db:migrate
-```
-
-5. Start the server:
-```bash
-npm start
-```
-
-## 🔧 Configuration
-
-### Environment Variables
-```env
-TELEGRAM_BOT_TOKEN=your_telegram_token
-JUDGE_PRIVATE_KEY=your_private_key
-OPENAI_API_KEY=your_openai_key
-NILLION_APP_ID=your_nillion_id
-PUSH_CHANNEL_ADDRESS=your_push_address
-```
-
-### Database Configuration
-```javascript
-// config/config.js
-module.exports = {
-  development: {
-    // Your development database config
-  },
-  production: {
-    // Your production database config
-  }
+### Blockchain Innovation
+```solidity
+// Inheritance becomes smart and automated
+if (lifeEvent === "marriage") {
+    transferAssets(spouse_address);
+} else if (lifeEvent === "graduation") {
+    releaseBTCEscrow(graduate_address);
 }
 ```
 
-## 📚 API Documentation
+### AI-Powered Verification System
+Our Guardian AI provides:
+- 📝 Real-time life event monitoring
+- 🤖 Multi-source event verification
+- 🎯 Automated inheritance execution
+- 💌 Secure message delivery
 
-### NFT Management
-- `POST /finetune-neg`: Fine-tune negative feedback for NFT conditions
-- `GET /getContacts/:ownerAddress`: Retrieve user contacts
+### Enterprise-Grade Security
+- 🔐 Nillion Network data encryption
+- 🛡️ Cross-chain deployment
+- 📡 Real-time Push notifications
+- 🤝 Decentralized consensus
 
-### Telegram Bot Endpoints
-- `GET /telegram/status`: Check bot status
-- `POST /telegram/update-questions`: Update daily questions
-- `GET /telegram/minters`: List active minters
-- `POST /telegram/minters`: Add new minter
-- `DELETE /telegram/minters/:address`: Remove minter
+<div align="center">
+  <img src="https://i.imgur.com/GHI012.png" alt="Heirary Security" width="400"/>
+</div>
 
-### Push Notifications
-- `POST /webhook/push`: Handle push notification events
-- `GET /webhook/push/test`: Test push notification endpoint
+## 💫 Applications
 
-### AI Analysis
-- `POST /webhook/analysis`: Process content analysis
-- `GET /webhook/analysis/test`: Test analysis endpoint
+### Personal Legacy
+- 💍 Marriage-activated inheritances
+- 🎓 Educational achievement rewards
+- ⚖️ Smart will execution
+- 💝 Future message delivery
 
-## 🔐 Security Features
+### Business Solutions
+- 🏢 Business succession automation
+- 📈 Milestone-based asset distribution
+- 🤝 Partnership continuity
+- 📊 Legacy planning for enterprises
 
-- Encrypted note storage via Nillion Network
-- Secure blockchain transactions
-- Protected API endpoints
-- Environment-based configurations
-- Error handling and monitoring
+## 🚀 Quick Start
 
-## 🤝 Contributing
+```bash
+# Begin your legacy journey
+git clone https://github.com/heirary/heirary-backend.git
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+# Set up dependencies
+npm install
 
-## 📄 License
+# Launch your legacy guardian
+npm start
+```
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+## 🛠 Core Components
+
+### Smart Contract Layer
+- NFT-based inheritance contracts
+- BTC escrow management
+- Multi-chain support
+- Event verification
+
+### AI Guardian System
+- Life event monitoring
+- Condition verification
+- Automated execution
+- Secure messaging
+
+### Security Infrastructure
+- End-to-end encryption
+- Decentralized storage
+- Real-time notifications
+- Multi-sig protection
+
+## 🌐 Connect With Us
+
+<div align="center">
+  <a href="https://heirary.xyz">Website</a> • 
+  <a href="https://docs.heirary.xyz">Documentation</a> • 
+  <a href="https://discord.gg/heirary">Discord</a> • 
+  <a href="https://twitter.com/HeiraryProtocol">Twitter</a>
+</div>
+
+---
+
+<div align="center">
+  <h3>Built with 💎 by the Heirary Team</h3>
+  <i>Securing Tomorrow's Legacy, Today</i>
+</div>
 
 
