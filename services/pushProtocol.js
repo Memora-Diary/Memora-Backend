@@ -55,7 +55,7 @@ class PushProtocolService {
               - References the journey and dedication
               - Includes warm words of encouragement
               - Ends with uplifting emojis
-              - Is concise but meaningful (2-3 sentences)
+              - Is concise but meaningful (3-4 sentences)
               Make it personal and authentic, not generic.`
           },
           {

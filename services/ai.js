@@ -6,6 +6,10 @@ const client = new OpenAI({
   apiKey: "",
 });
 
+const client2 = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
 async function callOpenAI(prompt, messagesArray) {
   try {
     console.log("Calling OpenAI with prompt and messagesArray");
@@ -195,6 +199,159 @@ async function generateAchievementMessage(prompt, nftId) {
   }
 }
 
+// Add this new training data for conditions
+const conditionTrainingData = [
+    {
+        condition: "When I get married",
+        keywords: ["married", "wedding", "tie the knot", "marriage"],
+    },
+    {
+        condition: "When I get a promotion",
+        keywords: ["promotion", "promoted", "advance", "higher position"],
+    },
+    {
+        condition: "When I have a baby",
+        keywords: ["baby", "child", "pregnant", "birth"],
+    },
+    {
+        condition: "When I buy a house",
+        keywords: ["house", "home", "property", "mortgage"],
+    },
+    {
+        condition: "When I pass away",
+        keywords: ["die", "death", "passed away", "deceased"],
+    },
+    {
+        condition: "When I retire",
+        keywords: ["retire", "retirement", "pension", "stop working"],
+    }
+];
+
+// New function to analyze messages for conditions and intentions
+async function analyzeMessageIntentions(messages, customConditions = []) {
+    let processedMessages = [];
+    
+    try {
+        console.log('\n📝 Analyzing message intentions...');
+        console.log('Input messages:', messages);
+        
+        // Ensure messages is always in the correct format
+        processedMessages = Array.isArray(messages) 
+            ? messages.filter(msg => msg) // Filter out null/undefined values
+            : typeof messages === 'string' 
+                ? [messages] 
+                : [];
+
+        if (processedMessages.length === 0) {
+            return {
+                success: false,
+                error: "No valid messages to analyze",
+                timestamp: new Date().toISOString(),
+                input: messages
+            };
+        }
+
+        // Combine default conditions with any custom conditions
+        const allConditions = [...conditionTrainingData, ...customConditions];
+        
+        // Format conditions for the prompt
+        const conditions = allConditions.map(data => 
+            `- "${data.condition}": Triggered by keywords: ${data.keywords.join(', ')}`
+        ).join('\n');
+
+        const promptMessages = [
+            {
+                role: "system",
+                content: `You are an AI trained to analyze conversations and identify conditional statements and intentions. 
+                
+                Look for patterns that match these conditions:
+                ${conditions}
+
+                These conditions can be combined using logical operators:
+                - AND (&&): Both conditions must be met
+                - OR (||): At least one condition must be met
+                - Grouping with parentheses () for complex combinations
+
+                For each identified intention, extract:
+                1. The condition(s) that trigger it
+                2. The action or transfer to be executed
+                3. The beneficiary (if applicable)
+                4. Any assets or amounts involved
+                5. Any temporal information (when/timeframe)
+
+                Format your response as a JSON object with this structure:
+                {
+                    "intentions": [
+                        {
+                            "condition": "string",
+                            "action": "string",
+                            "beneficiary": "string or null",
+                            "assets": {
+                                "type": "string",
+                                "amount": "number or string",
+                                "currency": "string"
+                            },
+                            "timeframe": "string or null",
+                            "raw_text": "string"
+                        }
+                    ],
+                    "complex_conditions": [
+                        {
+                            "type": "AND|OR",
+                            "conditions": ["string"],
+                            "raw_text": "string"
+                        }
+                    ]
+                }`
+            },
+            {
+                role: "user",
+                content: processedMessages.join('\n')
+            }
+        ];
+
+        console.log('Sending request to AI with messages:', promptMessages);
+        const completion = await client2.chat.completions.create({
+            model: "gpt-3.5-turbo",
+            messages: promptMessages,
+            response_format: { type: "json_object" },
+            temperature: 0.7,
+            max_tokens: 1000
+        });
+
+        const analysis = JSON.parse(completion.choices[0].message.content);
+        
+        console.log('\n🔍 Analysis Results:');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log(JSON.stringify(analysis, null, 2));
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+
+        return {
+            success: true,
+            analysis: analysis,
+            timestamp: new Date().toISOString(),
+            processed_messages: processedMessages
+        };
+
+    } catch (error) {
+        console.error('Error in analyzeMessageIntentions:', error);
+        return {
+            success: false,
+            error: error.message,
+            timestamp: new Date().toISOString(),
+            input: messages,
+            processed_messages: processedMessages
+        };
+    }
+}
+
+// Example usage:
+// const messages = [
+//     "When I get married, I want to give 1 ETH to my sister",
+//     "If I get promoted AND buy a house, transfer $5000 to my parents"
+// ];
+// const result = await analyzeMessageIntentions(messages);
+
 // Export client so it can be used in chain.js
 module.exports = { 
   client,
@@ -202,5 +359,6 @@ module.exports = {
   giveNegativeFeedback, 
   generateDiaryQuestions, 
   analyzeDiaryEntries,
-  generateAchievementMessage 
+  generateAchievementMessage,
+  analyzeMessageIntentions 
 };

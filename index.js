@@ -5,7 +5,13 @@ const updatePosts = require("./services/warpcast");
 const cron = require("node-cron");
 const cors = require("cors");
 const { fetchNFTPrompt } = require("./services/chain");
-const { giveNegativeFeedback } = require("./services/ai");
+const { 
+  giveNegativeFeedback, 
+  analyzeDiaryEntries,  // Import the existing AI functions
+  generateDiaryQuestions,
+  client: aiClient,
+  analyzeMessageIntentions
+} = require("./services/ai");
 const { createTables, mapAddressToName, getAddressForName, getContactsForUser } = require("./services/db");
 const verifyToken = require("./middleware/authMiddleware");
 const TelegramDiaryBot = require('./services/telegramBot');
@@ -85,8 +91,13 @@ app.post("/world_coin/verify", async (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send("Something broke!");
+  console.error('❌ Server Error:', err);
+  console.error('Stack trace:', err.stack);
+  res.status(500).json({ 
+    error: 'Internal server error',
+    message: err.message,
+    timestamp: new Date().toISOString()
+  });
 });
 
 let telegramBot = null;
@@ -311,4 +322,78 @@ app.get('/webhook/push/test', (req, res) => {
     message: 'Webhook endpoint is running',
     timestamp: new Date().toISOString()
   });
+});
+
+// AI Analysis Webhook Route
+app.post('/webhook/analysis', async (req, res) => {
+    console.log('\n🔔 Analysis Webhook received:');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('📦 Payload:', JSON.stringify(req.body, null, 2));
+
+    try {
+        // Check if we have valid transcript segments
+        if (!req.body.transcript_segments || !Array.isArray(req.body.transcript_segments)) {
+            console.log('Invalid or missing transcript segments');
+            return res.status(400).json({
+                error: 'Invalid or missing transcript segments',
+                expected_format: {
+                    transcript_segments: [{ text: "your message here" }]
+                }
+            });
+        }
+
+        // Extract messages from the nested structure
+        const messages = req.body.transcript_segments
+            .flatMap(segment => 
+                // Check if segment has nested transcript_segments
+                segment.transcript_segments 
+                    ? segment.transcript_segments
+                        .filter(s => s && s.text && s.text.trim()) // Filter out empty texts
+                        .map(s => s.text.trim())
+                    : segment.text 
+                        ? [segment.text.trim()]
+                        : []
+            )
+            .filter(text => text); // Filter out any remaining empty strings
+
+        console.log('Extracted messages:', messages);
+
+        if (messages.length === 0) {
+            console.log('No valid messages found in transcript segments');
+            return res.status(400).json({
+                error: 'No valid messages found in transcript segments',
+                received_payload: req.body
+            });
+        }
+            
+        // Pass the messages array to the analysis function
+        const analysis = await analyzeMessageIntentions(messages);
+        
+        console.log('\n🤖 AI Analysis Results:');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log(JSON.stringify(analysis, null, 2));
+
+        res.status(200).json({
+            message: 'Analysis completed successfully',
+            analysis,
+            processed_messages: messages
+        });
+    } catch (error) {
+        console.error('Analysis Error:', error);
+        res.status(500).json({
+            error: 'Error processing analysis request',
+            details: error.message,
+            received_payload: req.body
+        });
+    }
+});
+
+// Test endpoint for AI analysis
+app.get('/webhook/analysis/test', (req, res) => {
+    res.status(200).json({
+        status: 'active',
+        message: 'AI analysis endpoint is running',
+        timestamp: new Date().toISOString(),
+        ai_client: !!aiClient
+    });
 });
