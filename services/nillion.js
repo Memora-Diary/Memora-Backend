@@ -78,7 +78,7 @@ class NillionService {
             // Analyze content before storing
             const analysisResult = await this.analyzeContent(content);
             
-            // Store note with analysis
+            // Store note with analysis and metadata
             const noteData = {
                 content,
                 timestamp: Date.now(),
@@ -91,26 +91,31 @@ class NillionService {
                 body: JSON.stringify({
                     secret: {
                         nillion_seed: userSeed,
-                        secret_value: JSON.stringify(noteData),
+                        secret_value: JSON.stringify(noteData),  // Convert object to string
                         secret_name: `note_${title}`,
                     },
                     permissions: {
-                        retrieve: [], // Only the user can retrieve
-                        update: [],   // Only the user can update
-                        delete: [],   // Only the user can delete
-                        compute: {},  // No compute permissions
+                        retrieve: [],
+                        update: [],
+                        delete: [],
+                        compute: {},
                     },
                 }),
             });
 
             if (!response.ok) {
                 const errorData = await response.json();
+                console.error('Nillion API Error:', errorData);
                 throw new Error(`API returned ${response.status}: ${JSON.stringify(errorData)}`);
             }
 
             const result = await response.json();
             console.log('Store result:', result);
-            return { storeId: result.store_id, analysis: analysisResult.analysis };
+            
+            return { 
+                storeId: result.store_id, 
+                analysis: analysisResult.analysis
+            };
         } catch (error) {
             console.error('Error in storeNote:', error);
             throw error;
@@ -123,19 +128,28 @@ class NillionService {
             const userSeed = `telegram_${userId}`;
             console.log(`Retrieving note. StoreID: ${storeId}, Title: ${title}`);
 
-            const url = new URL(`${API_BASE}/api/secret/retrieve/${storeId}`);
-            url.searchParams.append('retrieve_as_nillion_user_seed', userSeed);
-            url.searchParams.append('secret_name', `note_${title}`);
+            // Construct URL with query parameters exactly as shown in reference
+            const url = `${API_BASE}/api/secret/retrieve/${storeId}?retrieve_as_nillion_user_seed=${userSeed}&secret_name=note_${title}`;
 
             const response = await fetch(url);
             
             if (!response.ok) {
                 const errorData = await response.json();
+                console.error('Nillion API Error:', errorData);
                 throw new Error(`API returned ${response.status}: ${JSON.stringify(errorData)}`);
             }
 
             const data = await response.json();
-            return JSON.parse(data.secret_value);
+            console.log('Retrieved secret:', data);
+
+            // Parse the secret_value since we stored it as a stringified object
+            const parsedData = JSON.parse(data.secret_value);
+            
+            return {
+                content: parsedData.content,
+                timestamp: parsedData.timestamp,
+                analysis: parsedData.analysis
+            };
         } catch (error) {
             console.error('Error retrieving note:', error);
             throw error;
@@ -146,19 +160,24 @@ class NillionService {
         try {
             await this.ensureInitialized();
             console.log(`Listing notes for app ID: ${this.appId}`);
+            
             const response = await fetch(`${API_BASE}/api/apps/${this.appId}/store_ids`);
             
             if (!response.ok) {
                 const errorData = await response.json();
+                console.error('Nillion API Error:', errorData);
                 throw new Error(`API returned ${response.status}: ${JSON.stringify(errorData)}`);
             }
 
             const data = await response.json();
+            console.log('Raw store IDs response:', data);
             
             if (!data.store_ids) {
+                console.log('No store IDs found');
                 return [];
             }
 
+            // Filter notes for this user and format the response
             return data.store_ids
                 .filter(item => item.secret_name.startsWith('note_'))
                 .map(item => ({
@@ -166,6 +185,7 @@ class NillionService {
                     storeId: item.store_id,
                     secretName: item.secret_name
                 }));
+
         } catch (error) {
             console.error('Error listing notes:', error);
             throw error;
