@@ -3,7 +3,9 @@ const { User, DiaryEntry } = require('../models');
 const { Op } = require('sequelize');
 const { fetchMemoraNFTData, fetchNFTPrompt, triggerNFT, triggerMemoraBTC } = require('./chain');
 const { generateDiaryQuestions, callOpenAI, giveNegativeFeedback } = require('./ai');
-const fetch = require('node-fetch');
+import('node-fetch').then(fetch => {
+  // Your code here
+}).catch(err => console.error('Error importing fetch:', err));
 const { sendNFTTriggerNotification, sendBTCTriggerNotification, } = require('./pushProtocol');
 
 class TelegramDiaryBot {
@@ -435,7 +437,7 @@ class TelegramDiaryBot {
 
     async getChatIdFromUsername(username) {
         try {
-            const cleanUsername = username.replace('@', '');
+            const cleanUsername = username.replace('@', '').replace('telegram:', '');
             
             // First try to get from database
             const user = await User.findOne({

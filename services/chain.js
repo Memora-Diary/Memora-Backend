@@ -148,9 +148,9 @@ async function triggerNFT(nftId) {
       await pushProtocolService.sendSystemErrorNotification(minter, 'AI service', nftId);
       
       // Use fallback message
-      // const fallbackMessage = `🌟 Incredible achievement! Your NFT #${nftId} condition "${prompt}" has been fulfilled. Your dedication has paid off, and we're thrilled to celebrate this moment with you! ✨`;
-      // await pushProtocolService.sendNFTTriggerNotification(heir, nftId, prompt);
-      // await pushProtocolService.sendNFTTriggerNotification(minter, nftId, prompt);
+      const fallbackMessage = `🌟 Incredible achievement! Your NFT #${nftId} condition "${prompt}" has been fulfilled. Your dedication has paid off, and we're thrilled to celebrate this moment with you! ✨`;
+      await pushProtocolService.sendNFTTriggerNotification(heir, nftId, prompt);
+      await pushProtocolService.sendNFTTriggerNotification(minter, nftId, prompt);
     }
   } catch (error) {
     console.error("General error:", error);

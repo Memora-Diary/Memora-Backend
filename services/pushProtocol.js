@@ -96,7 +96,7 @@ class PushProtocolService {
 
     return this.sendNotification({
       recipient: recipientAddress,
-      title: "🎉 Memora Milestone Achieved! ����",
+      title: "🎉 Memora Milestone Achieved!",
       body: message,
       cta: `https://memora.xyz/nft/${nftId}`
     });

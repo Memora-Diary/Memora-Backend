@@ -10,6 +10,8 @@ const { createTables, mapAddressToName, getAddressForName, getContactsForUser } 
 const verifyToken = require("./middleware/authMiddleware");
 const TelegramDiaryBot = require('./services/telegramBot');
 const { initializeDatabase } = require('./services/initDb');
+const fs = require('fs').promises;
+const path = require('path');
 
 
 app.use(cors());
@@ -90,9 +92,23 @@ app.use((err, req, res, next) => {
 let telegramBot = null;
 let server = null;
 
+// Create logs directory at startup
+const initializeLogs = async () => {
+  const logsDir = path.join(__dirname, 'logs');
+  try {
+    await fs.mkdir(logsDir, { recursive: true });
+    console.log('Logs directory initialized');
+  } catch (error) {
+    console.error('Error creating logs directory:', error);
+  }
+};
+
 // Initialize database and start server
 async function startServer() {
   try {
+    // Initialize logs directory
+    await initializeLogs();
+    
     // Initialize database
     await initializeDatabase();
     
@@ -261,4 +277,38 @@ app.post("/telegram/link-minter", verifyToken, async (req, res) => {
             error: error.message 
         });
     }
+});
+
+// Simple webhook endpoint
+app.post('/webhook/push', express.json(), (req, res) => {
+  try {
+    // Log the incoming data
+    console.log('Webhook Received:');
+    console.log('==================');
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('Payload:', JSON.stringify(req.body, null, 2));
+    console.log('==================\n');
+
+    // Send success response
+    res.status(200).json({
+      status: 'success',
+      message: 'Webhook received and logged',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Webhook Error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message
+    });
+  }
+});
+
+// Test endpoint
+app.get('/webhook/push/test', (req, res) => {
+  res.status(200).json({
+    status: 'active',
+    message: 'Webhook endpoint is running',
+    timestamp: new Date().toISOString()
+  });
 });
